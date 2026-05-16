@@ -150,6 +150,9 @@ Additional workflow rules:
 
 - Every feature MUST live on a dedicated branch
 - Commits MUST be atomic and reference the task ID
+- Pull requests MUST use the template at `.github/pull_request_template.md`,
+  which requires: a clear title, what/why/impact description, and a reference
+  to the corresponding user story or task
 - Pull requests MUST pass all automated checks before merge
 - Code review is mandatory for all changes to `main`
 
@@ -181,4 +184,4 @@ Constitution versions follow semantic versioning:
 - Plan Constitution Check MUST verify alignment before implementation
 - Pull request reviews MUST verify principle compliance
 
-**Version**: 1.0.0 | **Ratified**: 2025-05-17 | **Last Amended**: 2025-05-17
+**Version**: 1.0.1 | **Ratified**: 2025-05-17 | **Last Amended**: 2025-05-17
