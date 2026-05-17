@@ -26,6 +26,7 @@ extra["mockkVersion"] = "1.13.14"
 extra["springmockkVersion"] = "4.0.2"
 extra["springdocVersion"] = "2.8.3"
 extra["coroutinesVersion"] = "1.8.1"
+extra["stripeVersion"] = "29.0.0"
 
 dependencies {
     // Spring Boot starters
@@ -47,14 +48,14 @@ dependencies {
     runtimeOnly("org.postgresql:postgresql")
 
     // Flyway (JDBC-based migrations)
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-database-postgresql")
+    runtimeOnly("org.flywaydb:flyway-core")
+    runtimeOnly("org.flywaydb:flyway-database-postgresql")
 
     // API documentation
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:${property("springdocVersion")}")
 
     // Payments
-    implementation("com.stripe:stripe-java:29.0.0")
+    implementation("com.stripe:stripe-java:${property("stripeVersion")}")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
