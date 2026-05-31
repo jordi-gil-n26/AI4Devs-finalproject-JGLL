@@ -43,6 +43,9 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${property("coroutinesVersion")}")
     implementation("io.projectreactor.kotlin:reactor-kotlin-extensions")
 
+    // Reactor <-> ThreadLocal (MDC) context propagation for structured logging
+    implementation("io.micrometer:context-propagation")
+
     // Database — R2DBC (reactive, for application queries)
     implementation("org.postgresql:r2dbc-postgresql")
     runtimeOnly("org.postgresql:postgresql")
