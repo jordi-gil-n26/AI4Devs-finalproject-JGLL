@@ -9,11 +9,11 @@
 --     but that transition is enforced in the application layer, not here.
 --
 -- FK targets:
---   bookings(id)   from V5__create_bookings.sql
---   properties(id) from V3__create_properties.sql
---   guests(id)     from V2__create_users.sql
+--   booking(id)   from V5__create_bookings.sql
+--   property(id)  from V3__create_properties.sql
+--   guest(id)     from V2__create_users.sql
 
-CREATE TABLE reviews (
+CREATE TABLE review (
     id          UUID        PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id  UUID        NOT NULL,
     property_id UUID        NOT NULL,
@@ -22,24 +22,24 @@ CREATE TABLE reviews (
     comment     TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT uk_reviews_booking_id
+    CONSTRAINT uk_review_booking_id
         UNIQUE (booking_id),
 
-    CONSTRAINT chk_reviews_rating_range
+    CONSTRAINT chk_review_rating_range
         CHECK (rating BETWEEN 1 AND 5),
 
-    CONSTRAINT fk_reviews_booking
-        FOREIGN KEY (booking_id)  REFERENCES bookings(id)   ON DELETE CASCADE,
-    CONSTRAINT fk_reviews_property
-        FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE,
-    CONSTRAINT fk_reviews_guest
-        FOREIGN KEY (guest_id)    REFERENCES guests(id)     ON DELETE RESTRICT
+    CONSTRAINT fk_review_booking
+        FOREIGN KEY (booking_id)  REFERENCES booking(id)  ON DELETE CASCADE,
+    CONSTRAINT fk_review_property
+        FOREIGN KEY (property_id) REFERENCES property(id) ON DELETE CASCADE,
+    CONSTRAINT fk_review_guest
+        FOREIGN KEY (guest_id)    REFERENCES guest(id)    ON DELETE RESTRICT
 );
 
 -- Property detail page lists reviews for a given property.
 CREATE INDEX idx_review_property_id
-    ON reviews (property_id);
+    ON review (property_id);
 
 -- Most recent reviews first (used on property detail page and aggregations).
 CREATE INDEX idx_review_created_at
-    ON reviews (created_at DESC);
+    ON review (created_at DESC);
