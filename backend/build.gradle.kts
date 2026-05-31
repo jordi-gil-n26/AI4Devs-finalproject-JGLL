@@ -27,6 +27,7 @@ extra["springmockkVersion"] = "4.0.2"
 extra["springdocVersion"] = "2.8.3"
 extra["coroutinesVersion"] = "1.8.1"
 extra["stripeVersion"] = "29.0.0"
+extra["jjwtVersion"] = "0.12.6"
 
 dependencies {
     // Spring Boot starters
@@ -56,6 +57,11 @@ dependencies {
 
     // Payments
     implementation("com.stripe:stripe-java:${property("stripeVersion")}")
+
+    // JWT — secret/issuer are env-driven (see stayhub.jwt.* in application.yml)
+    implementation("io.jsonwebtoken:jjwt-api:${property("jjwtVersion")}")
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:${property("jjwtVersion")}")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:${property("jjwtVersion")}")
 
     // Testing
     testImplementation("org.springframework.boot:spring-boot-starter-test")
