@@ -7,6 +7,7 @@ import com.stayhub.domain.property.PropertySearchFilters
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -17,9 +18,10 @@ import java.math.BigDecimal
 import java.util.*
 
 @Repository
+@ConditionalOnBean(DatabaseClient::class)
 class PropertyRepositoryAdapter(
     private val databaseClient: DatabaseClient,
-    private val objectMapper: ObjectMapper,
+    private val objectMapper: ObjectMapper = ObjectMapper(),
 ) : PropertyRepository {
     override suspend fun searchByBoundingBox(
         swLat: Double,
