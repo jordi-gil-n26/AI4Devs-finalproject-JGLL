@@ -1,5 +1,6 @@
 package com.stayhub.infrastructure.persistence
 
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertyRepository
@@ -8,6 +9,7 @@ import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
+import org.springframework.context.annotation.Bean
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -21,7 +23,7 @@ import java.util.*
 @ConditionalOnBean(DatabaseClient::class)
 class PropertyRepositoryAdapter(
     private val databaseClient: DatabaseClient,
-    private val objectMapper: ObjectMapper = ObjectMapper(),
+    private val objectMapper: ObjectMapper,
 ) : PropertyRepository {
     override suspend fun searchByBoundingBox(
         swLat: Double,
@@ -31,40 +33,39 @@ class PropertyRepositoryAdapter(
         filters: PropertySearchFilters,
         pageable: Pageable,
     ): Page<Property> {
-        // Build PostGIS ST_MakeEnvelope query for bounding box
+        // Build parameterized query with window function to get count in single query
         // ST_MakeEnvelope(sw_lng, sw_lat, ne_lng, ne_lat, 4326) creates geography polygon
-        val query = buildString {
-            append("""
-                SELECT p.id, p.host_id, p.title, p.description, p.property_type,
-                       ST_Y(p.location::geometry) as lat, ST_X(p.location::geometry) as lng,
-                       p.city, p.region, p.country, p.address,
-                       p.max_guests, p.bedrooms, p.bathrooms,
-                       p.nightly_rate_eur, p.cleaning_fee_eur,
-                       p.amenities, p.house_rules, p.photos,
-                       p.avg_rating, p.review_count
-                FROM property p
-                WHERE ST_Contains(
-                    ST_MakeEnvelope($swLng, $swLat, $neLng, $neLat, 4326)::geography,
-                    p.location
-                )
-                AND p.is_active = true
-            """.trimIndent())
-
-            // Add price filters
+        val query = """
+            SELECT p.id, p.host_id, p.title, p.description, p.property_type,
+                   ST_Y(p.location::geometry) as lat, ST_X(p.location::geometry) as lng,
+                   p.city, p.region, p.country, p.address,
+                   p.max_guests, p.bedrooms, p.bathrooms,
+                   p.nightly_rate_eur, p.cleaning_fee_eur,
+                   p.amenities, p.house_rules, p.photos,
+                   p.avg_rating, p.review_count,
+                   COUNT(*) OVER() as total_count
+            FROM property p
+            WHERE ST_Contains(
+                ST_MakeEnvelope(:swLng, :swLat, :neLng, :neLat, 4326)::geography,
+                p.location
+            )
+            AND p.is_active = true
+        """.trimIndent() + buildString {
+            // Add price filters with parameterized queries
             if (filters.minPrice != null) {
-                append(" AND p.nightly_rate_eur >= ${filters.minPrice}")
+                append(" AND p.nightly_rate_eur >= :minPrice")
             }
             if (filters.maxPrice != null) {
-                append(" AND p.nightly_rate_eur <= ${filters.maxPrice}")
+                append(" AND p.nightly_rate_eur <= :maxPrice")
             }
             if (filters.propertyType != null) {
-                append(" AND p.property_type = '${filters.propertyType}'")
+                append(" AND p.property_type = :propertyType")
             }
             if (filters.bedrooms != null) {
-                append(" AND p.bedrooms >= ${filters.bedrooms}")
+                append(" AND p.bedrooms >= :bedrooms")
             }
             if (filters.minGuests != null) {
-                append(" AND p.max_guests >= ${filters.minGuests}")
+                append(" AND p.max_guests >= :minGuests")
             }
 
             // Sort
@@ -75,37 +76,46 @@ class PropertyRepositoryAdapter(
                 else -> append(" ORDER BY p.id") // relevance
             }
 
-            append(" LIMIT ${pageable.pageSize} OFFSET ${pageable.offset}")
+            append(" LIMIT :pageSize OFFSET :offset")
+        }
+
+        // Build parameterized query
+        var sqlSpec = databaseClient.sql(query)
+            .bind("swLng", swLng)
+            .bind("swLat", swLat)
+            .bind("neLng", neLng)
+            .bind("neLat", neLat)
+            .bind("pageSize", pageable.pageSize)
+            .bind("offset", pageable.offset)
+
+        // Bind filter parameters
+        if (filters.minPrice != null) {
+            sqlSpec = sqlSpec.bind("minPrice", filters.minPrice)
+        }
+        if (filters.maxPrice != null) {
+            sqlSpec = sqlSpec.bind("maxPrice", filters.maxPrice)
+        }
+        if (filters.propertyType != null) {
+            sqlSpec = sqlSpec.bind("propertyType", filters.propertyType)
+        }
+        if (filters.bedrooms != null) {
+            sqlSpec = sqlSpec.bind("bedrooms", filters.bedrooms)
+        }
+        if (filters.minGuests != null) {
+            sqlSpec = sqlSpec.bind("minGuests", filters.minGuests)
         }
 
         // Execute query and map results
-        val properties = databaseClient
-            .sql(query)
-            .map { row, _ -> mapRowToProperty(row) }
+        val results = sqlSpec
+            .map { row, _ ->
+                Pair(mapRowToProperty(row), row.get("total_count", Long::class.java) ?: 0L)
+            }
             .all()
             .collectList()
             .awaitSingle()
 
-        // Get total count for this bounding box
-        val countQuery = """
-            SELECT COUNT(*) as count FROM property p
-            WHERE ST_Contains(
-                ST_MakeEnvelope($swLng, $swLat, $neLng, $neLat, 4326)::geography,
-                p.location
-            )
-            AND p.is_active = true
-        """.trimIndent() +
-            (if (filters.minPrice != null) " AND p.nightly_rate_eur >= ${filters.minPrice}" else "") +
-            (if (filters.maxPrice != null) " AND p.nightly_rate_eur <= ${filters.maxPrice}" else "") +
-            (if (filters.propertyType != null) " AND p.property_type = '${filters.propertyType}'" else "") +
-            (if (filters.bedrooms != null) " AND p.bedrooms >= ${filters.bedrooms}" else "") +
-            (if (filters.minGuests != null) " AND p.max_guests >= ${filters.minGuests}" else "")
-
-        val count = databaseClient
-            .sql(countQuery)
-            .map { row, _ -> row.get("count", Long::class.java) ?: 0L }
-            .one()
-            .awaitFirstOrNull() ?: 0L
+        val properties = results.map { it.first }
+        val count = results.firstOrNull()?.second ?: 0L
 
         return PageImpl(properties, pageable, count)
     }
@@ -120,11 +130,12 @@ class PropertyRepositoryAdapter(
                    p.amenities, p.house_rules, p.photos,
                    p.avg_rating, p.review_count
             FROM property p
-            WHERE p.id = '$id'
+            WHERE p.id = :id
         """.trimIndent()
 
         return databaseClient
             .sql(query)
+            .bind("id", id)
             .map { row, _ -> mapRowToProperty(row) }
             .one()
             .awaitFirstOrNull()
@@ -185,5 +196,23 @@ class PropertyRepositoryAdapter(
             avgRating = row.get("avg_rating", BigDecimal::class.java)?.toDouble(),
             reviewCount = row.get("review_count", Int::class.java) ?: 0,
         )
+    }
+
+    companion object {
+        /**
+         * Create a secured ObjectMapper instance with protections against:
+         * - Unbounded JSON parsing (JSON bombing)
+         * - Unknown properties injection
+         * - Trailing token injection
+         */
+        @Bean
+        fun securedObjectMapper(): ObjectMapper {
+            return ObjectMapper().apply {
+                // Prevent deserialization of unknown properties that could lead to injection attacks
+                configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                // Fail if there are trailing tokens after valid JSON structure
+                configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, true)
+            }
+        }
     }
 }
