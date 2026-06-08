@@ -8,7 +8,6 @@ import com.stayhub.domain.property.PropertySearchFilters
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean
 import org.springframework.context.annotation.Bean
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
@@ -20,7 +19,6 @@ import java.math.BigDecimal
 import java.util.*
 
 @Repository
-@ConditionalOnBean(DatabaseClient::class)
 class PropertyRepositoryAdapter(
     private val databaseClient: DatabaseClient,
     private val objectMapper: ObjectMapper,
@@ -46,8 +44,8 @@ class PropertyRepositoryAdapter(
                    COUNT(*) OVER() as total_count
             FROM property p
             WHERE ST_Contains(
-                ST_MakeEnvelope(:swLng, :swLat, :neLng, :neLat, 4326)::geography,
-                p.location
+                ST_MakeEnvelope(:swLng, :swLat, :neLng, :neLat, 4326),
+                p.location::geometry
             )
             AND p.is_active = true
         """.trimIndent() + buildString {
