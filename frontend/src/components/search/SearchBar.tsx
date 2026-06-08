@@ -80,6 +80,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
+    // Validate date range: check-out must be after check-in
+    if (checkInDate && checkOutDate && checkInDate >= checkOutDate) {
+      alert('Check-out date must be after check-in date');
+      return;
+    }
+
     // Call the onSearch callback with current search parameters
     onSearch({
       location,
@@ -132,6 +138,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           <input
             id="check-out"
             type="date"
+            min={checkInDate}
             value={checkOutDate}
             onChange={handleCheckOutChange}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -156,10 +163,11 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
               id="guests"
               type="number"
               min="1"
+              max="20"
               value={guests}
               onChange={(e) => {
                 const value = parseInt(e.target.value, 10);
-                if (!isNaN(value) && value >= 1) {
+                if (!isNaN(value) && value >= 1 && value <= 20) {
                   setGuests(value);
                 }
               }}

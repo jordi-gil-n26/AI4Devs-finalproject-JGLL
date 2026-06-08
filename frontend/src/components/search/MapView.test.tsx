@@ -28,9 +28,9 @@ vi.mock('react-map-gl/mapbox', () => {
         'data-latitude': props.latitude,
       }, children)
     ),
-    Marker: ({ children, longitude, latitude, ...props }: any) => (
+    Marker: ({ children, 'data-testid': testId, ...props }: any) => (
       React.createElement('div', {
-        'data-testid': `marker-${longitude}-${latitude}`,
+        'data-testid': testId,
         ...props,
       }, children)
     ),
@@ -122,7 +122,7 @@ describe('MapView Component', () => {
     // Should have markers for both properties
     mockProperties.forEach((prop) => {
       expect(
-        screen.getByTestId(`marker-${prop.location.lng}-${prop.location.lat}`)
+        screen.getByTestId(`marker-${prop.id}`)
       ).toBeInTheDocument();
     });
   });
@@ -219,7 +219,7 @@ describe('MapView Component', () => {
 
     // Should have one marker
     expect(
-      screen.getByTestId(`marker-${mockProperties[0].location.lng}-${mockProperties[0].location.lat}`)
+      screen.getByTestId(`marker-${mockProperties[0].id}`)
     ).toBeInTheDocument();
 
     // Re-render with both properties
@@ -236,7 +236,7 @@ describe('MapView Component', () => {
     // Should now have both markers
     mockProperties.forEach((prop) => {
       expect(
-        screen.getByTestId(`marker-${prop.location.lng}-${prop.location.lat}`)
+        screen.getByTestId(`marker-${prop.id}`)
       ).toBeInTheDocument();
     });
   });
@@ -253,7 +253,7 @@ describe('MapView Component', () => {
       />
     );
 
-    const marker = screen.getByTestId(`marker-${mockProperties[0].location.lng}-${mockProperties[0].location.lat}`);
+    const marker = screen.getByTestId(`marker-${mockProperties[0].id}`);
     expect(marker).toBeInTheDocument();
   });
 

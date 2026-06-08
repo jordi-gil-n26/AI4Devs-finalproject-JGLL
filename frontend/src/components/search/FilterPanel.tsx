@@ -20,12 +20,22 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
 
   const handleMinPriceChange = (value: string) => {
     const num = value ? parseInt(value, 10) : undefined;
+    // Validate that min price doesn't exceed max price
+    if (num && maxPrice && num > maxPrice) {
+      console.warn('Min price cannot be greater than max price');
+      return;
+    }
     setMinPrice(num);
     onFiltersChange({ min_price: num });
   };
 
   const handleMaxPriceChange = (value: string) => {
     const num = value ? parseInt(value, 10) : undefined;
+    // Validate that max price isn't less than min price
+    if (num && minPrice && num < minPrice) {
+      console.warn('Max price cannot be less than min price');
+      return;
+    }
     setMaxPrice(num);
     onFiltersChange({ max_price: num });
   };

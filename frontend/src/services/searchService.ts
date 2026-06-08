@@ -16,8 +16,12 @@ import type { SearchFilters, SearchResultsResponse, GeocodeResponse } from '@/ty
  * Hook: Search properties within a bounding box with optional filters.
  * Disabled when params is undefined (no query key change or premature requests).
  *
- * @param params Search parameters (bounding box, dates, filters, pagination)
- * @returns Query result with data, error, isLoading, etc.
+ * **IMPORTANT**: Parent component MUST memoize the params object using useMemo.
+ * If params is recreated on every render, TanStack Query will treat it as a new query key,
+ * causing duplicate requests and cache misses.
+ *
+ * @param params - Search filters (MUST be memoized by parent)
+ * @returns Query result with properties, error, isLoading, etc.
  */
 export function usePropertySearch(
   params: SearchFilters | undefined,

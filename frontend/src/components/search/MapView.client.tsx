@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import Map, { Marker, Popup } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import type { PropertySummary } from '@/types';
@@ -63,6 +63,12 @@ export function MapViewClient({
     onPropertyHover(null);
   }, [onPropertyHover]);
 
+  // Memoize selected property to avoid O(n) lookup in render
+  const selectedProperty = useMemo(
+    () => properties.find((p) => p.id === selectedPropertyId),
+    [properties, selectedPropertyId]
+  );
+
   if (!mapboxToken) {
     return (
       <div
@@ -104,7 +110,7 @@ export function MapViewClient({
             longitude={property.location.lng}
             latitude={property.location.lat}
             anchor="bottom"
-            data-testid={`marker-${property.location.lng}-${property.location.lat}`}
+            data-testid={`marker-${property.id}`}
             onClick={() => handleMarkerClick(property.id)}
             onMouseEnter={() => handleMarkerHover(property.id)}
             onMouseLeave={handleMarkerLeave}
@@ -128,38 +134,27 @@ export function MapViewClient({
         ))}
 
         {/* Show popup for selected property */}
-        {selectedPropertyId && properties.find((p) => p.id === selectedPropertyId) && (
+        {selectedProperty && (
           <Popup
-            longitude={
-              properties.find((p) => p.id === selectedPropertyId)?.location.lng || 0
-            }
-            latitude={
-              properties.find((p) => p.id === selectedPropertyId)?.location.lat || 0
-            }
+            longitude={selectedProperty.location.lng}
+            latitude={selectedProperty.location.lat}
             anchor="top"
             onClose={() => onPropertyClick('')}
             data-testid="popup"
           >
-            {(() => {
-              const property = properties.find((p) => p.id === selectedPropertyId);
-              return (
-                property && (
-                  <div className="max-w-xs">
-                    <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
-                      {property.title}
-                    </h3>
-                    <p className="text-xs text-gray-600 mt-1">
-                      €{property.nightly_rate_eur.toFixed(0)}/night
-                    </p>
-                    {property.avg_rating && (
-                      <p className="text-xs text-gray-700 mt-1">
-                        ⭐ {property.avg_rating.toFixed(1)} ({property.review_count} reviews)
-                      </p>
-                    )}
-                  </div>
-                )
-              );
-            })()}
+            <div className="max-w-xs">
+              <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
+                {selectedProperty.title}
+              </h3>
+              <p className="text-xs text-gray-600 mt-1">
+                €{selectedProperty.nightly_rate_eur.toFixed(0)}/night
+              </p>
+              {selectedProperty.avg_rating && (
+                <p className="text-xs text-gray-700 mt-1">
+                  ⭐ {selectedProperty.avg_rating.toFixed(1)} ({selectedProperty.review_count} reviews)
+                </p>
+              )}
+            </div>
           </Popup>
         )}
       </Map>

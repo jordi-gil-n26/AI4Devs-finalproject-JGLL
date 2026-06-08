@@ -35,7 +35,10 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
       <div className="relative aspect-square overflow-hidden bg-gray-200">
         <img
           src={property.photo_url}
-          alt={property.title}
+          alt={`Photo of ${property.title}`}
+          onError={(e) => {
+            e.currentTarget.src = 'https://via.placeholder.com/300x200?text=No+Image';
+          }}
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
         />
       </div>
