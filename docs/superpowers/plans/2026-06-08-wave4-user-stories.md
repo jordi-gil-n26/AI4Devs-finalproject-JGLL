@@ -2,6 +2,45 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
+## CRITICAL: Feature Branch + PR Workflow
+
+**SUPERPOWERS SUBAGENT INSTRUCTION** — This applies to all subagents dispatched from this plan.
+
+**BEFORE any implementation:**
+1. Create a feature branch: `git checkout -b issue-22-t{task-number}-{slug}`
+   - Example: `issue-22-t025-property-repository-adapter`
+2. Implement the code (following TDD)
+3. Push branch: `git push origin issue-22-t{task-number}-{slug}`
+4. Create PR: `gh pr create --title "feat(...): (#22-T{task})" --body "..."`
+5. **DO NOT commit directly to main or merge PRs yourself**
+
+**Why:** Code review checkpoint, audit trail, prevents bugs. See [[superpowers_pr_workflow]].
+
+**PR Description Template:**
+```
+## Task T{task}: [Feature Name]
+
+### What
+[1 sentence on what this implements]
+
+### How
+[2-3 bullets on approach]
+
+### Tests
+✅ Backend: X/X passing
+✅ Frontend: X/X passing
+
+### Spec Compliance
+[[link to spec section]]
+```
+
+**GitHub Branch Protection (must be enabled before continuing):**
+- ✅ Status checks: Backend (Gradle) + Frontend (Vitest)
+- ✅ Require 1 PR review (currently MISSING — user must enable in GitHub settings)
+- ✅ Dismiss stale reviews
+
+---
+
 **Goal:** Implement all four user stories — Search Properties (US1), View Property Details (US2), Complete a Booking (US3), and Manage Bookings (US4) — end-to-end from backend use cases through frontend UI, with TDD and frequent commits.
 
 **Architecture:** Each user story is independently testable after its backend use cases + controllers and frontend services + pages are complete. Within each story, domain logic comes first (TDD), then repository adapters, then API layer (backend), then hooks + components + pages (frontend). Phases can run in parallel if staffed.
