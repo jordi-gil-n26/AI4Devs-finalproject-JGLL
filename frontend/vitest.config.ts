@@ -5,8 +5,8 @@ export default defineConfig({
   // to load the project's Tailwind PostCSS config.
   css: { postcss: { plugins: [] } },
   test: {
-    environment: 'node',
+    environment: 'jsdom',
     globals: true,
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
   },
 });
