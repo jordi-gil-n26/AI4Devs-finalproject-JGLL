@@ -1,0 +1,41 @@
+package com.stayhub.application.search
+
+import com.stayhub.domain.property.Property
+import com.stayhub.domain.property.PropertyRepository
+import com.stayhub.domain.property.PropertySearchFilters
+import com.stayhub.presentation.error.ValidationException
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import java.time.LocalDate
+
+class SearchPropertiesUseCase(
+    private val propertyRepository: PropertyRepository,
+) {
+    suspend fun search(
+        swLat: Double,
+        swLng: Double,
+        neLat: Double,
+        neLng: Double,
+        checkIn: String,
+        checkOut: String,
+        filters: PropertySearchFilters,
+        page: Int = 1,
+        size: Int = 20,
+    ): Page<Property> {
+        if (swLat >= neLat || swLng >= neLng) {
+            throw ValidationException("Invalid bounding box: southwest must be less than northeast")
+        }
+
+        val checkInDate = LocalDate.parse(checkIn)
+        val checkOutDate = LocalDate.parse(checkOut)
+        if (checkInDate >= checkOutDate) {
+            throw ValidationException("Check-out date must be after check-in date")
+        }
+        if (checkInDate < LocalDate.now()) {
+            throw ValidationException("Check-in date must be in the future")
+        }
+
+        val pageable = PageRequest.of(page - 1, size)
+        return propertyRepository.searchByBoundingBox(swLat, swLng, neLat, neLng, filters, pageable)
+    }
+}
