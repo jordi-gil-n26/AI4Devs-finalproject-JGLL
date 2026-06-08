@@ -24,3 +24,9 @@ at specs/001-guest-search-booking/plan.md
 **Why:** Ensures code review, test validation, and audit trail for all changes. Protects against accidental bugs, security issues, and unreviewed refactors.
 
 **Agent/Subagent Instruction:** When dispatched, create a feature branch BEFORE any commits. Use `git checkout -b issue-XX-tYYZ-feature-name`. Push branch, create PR, do NOT commit to main.
+
+**Close GitHub Issues:** When a task is complete and all tests pass:
+```bash
+gh issue close {issue-number} --comment "Completed: [summary]. Commits: [SHA list]. Tests: [results]."
+```
+This keeps GitHub issues synchronized with actual completed work. Include the issue reference in commit messages (e.g., `(#22-T025)`) so issues auto-link.

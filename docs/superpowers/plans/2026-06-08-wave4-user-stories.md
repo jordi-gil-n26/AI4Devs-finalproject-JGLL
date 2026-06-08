@@ -14,6 +14,12 @@
 4. Create PR: `gh pr create --title "feat(...): (#22-T{task})" --body "..."`
 5. **DO NOT commit directly to main or merge PRs yourself**
 
+**AFTER implementation is complete and tested:**
+6. Close the GitHub issue: `gh issue close {issue-number} --comment "Completed: [summary]. Commits: [SHA list]. Tests: [results]."`
+   - Include: what was done, commit SHAs, test results, any quality notes
+   - Example: `gh issue close 26 --comment "Completed: PropertyRepositoryAdapter. Commits: 7e73ee3, 4b5ceaf. Tests: 38/38 passing."`
+   - **This keeps GitHub issues in sync with completed work**
+
 **Why:** Code review checkpoint, audit trail, prevents bugs. See [[superpowers_pr_workflow]].
 
 **PR Description Template:**
