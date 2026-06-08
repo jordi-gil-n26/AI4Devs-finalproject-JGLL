@@ -7,6 +7,7 @@ import com.stayhub.presentation.error.ValidationException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import java.time.LocalDate
+import java.time.format.DateTimeParseException
 
 class SearchPropertiesUseCase(
     private val propertyRepository: PropertyRepository,
@@ -26,8 +27,17 @@ class SearchPropertiesUseCase(
             throw ValidationException("Invalid bounding box: southwest must be less than northeast")
         }
 
-        val checkInDate = LocalDate.parse(checkIn)
-        val checkOutDate = LocalDate.parse(checkOut)
+        val checkInDate = try {
+            LocalDate.parse(checkIn)
+        } catch (e: DateTimeParseException) {
+            throw ValidationException("Invalid check-in date format. Use YYYY-MM-DD")
+        }
+
+        val checkOutDate = try {
+            LocalDate.parse(checkOut)
+        } catch (e: DateTimeParseException) {
+            throw ValidationException("Invalid check-out date format. Use YYYY-MM-DD")
+        }
         if (checkInDate >= checkOutDate) {
             throw ValidationException("Check-out date must be after check-in date")
         }

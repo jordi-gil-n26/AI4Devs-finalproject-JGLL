@@ -81,4 +81,22 @@ class SearchPropertiesUseCaseTest {
             }
         }
     }
+
+    @Test
+    fun `rejects invalid date format`() {
+        runBlocking {
+            val propertyRepo = mockk<PropertyRepository>()
+            val useCase = SearchPropertiesUseCase(propertyRepo)
+
+            shouldThrow<ValidationException> {
+                useCase.search(
+                    swLat = 41.35, swLng = 2.10, neLat = 41.45, neLng = 2.20,
+                    checkIn = "not-a-date",  // Invalid format
+                    checkOut = "2026-07-05",
+                    filters = PropertySearchFilters(),
+                    page = 1, size = 20
+                )
+            }
+        }
+    }
 }
