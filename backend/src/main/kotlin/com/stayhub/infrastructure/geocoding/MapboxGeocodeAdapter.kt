@@ -2,9 +2,13 @@ package com.stayhub.infrastructure.geocoding
 
 import com.stayhub.domain.property.GeocodeResult
 import com.stayhub.domain.property.GeocodeService
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.stereotype.Service
 
+@Service
 class MapboxGeocodeAdapter(
-    private val apiKey: String = "default-token",
+    @Value("\${mapbox.api-key:default-token}")
+    private val apiKey: String,
 ) : GeocodeService {
     override suspend fun geocode(query: String): List<GeocodeResult> {
         // Mock implementation returning Barcelona coordinates

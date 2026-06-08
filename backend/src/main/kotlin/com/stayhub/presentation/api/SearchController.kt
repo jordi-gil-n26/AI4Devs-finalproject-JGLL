@@ -1,6 +1,7 @@
 package com.stayhub.presentation.api
 
 import com.stayhub.application.search.SearchPropertiesUseCase
+import com.stayhub.domain.property.GeocodeService
 import com.stayhub.domain.property.PropertySearchFilters
 import com.stayhub.presentation.dto.search.*
 import org.springframework.web.bind.annotation.*
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*
 @RequestMapping("/api/v1/properties")
 class SearchController(
     private val searchUseCase: SearchPropertiesUseCase,
+    private val geocodeService: GeocodeService,
 ) {
     @GetMapping("/search")
     suspend fun search(
@@ -60,7 +62,14 @@ class SearchController(
 
     @GetMapping("/geocode")
     suspend fun geocode(@RequestParam q: String): GeocodeResponse {
-        // TODO: Call GeocodeService
-        return GeocodeResponse(emptyList())
+        val results = geocodeService.geocode(q)
+        return GeocodeResponse(results.map { result ->
+            mapOf(
+                "name" to result.name as Any,
+                "lat" to result.lat as Any,
+                "lng" to result.lng as Any,
+                "bbox" to result.bbox as Any
+            )
+        })
     }
 }

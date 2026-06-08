@@ -8,7 +8,11 @@ spring:
     username: testuser
     password: testpass
   flyway:
-    enabled: true
-    url: jdbc:postgresql://localhost:5432/testdb
-    user: testuser
-    password: testpass
+    enabled: false
+  test:
+    context:
+      cache:
+        maxSize: 1
+
+mapbox:
+  api-key: test-token

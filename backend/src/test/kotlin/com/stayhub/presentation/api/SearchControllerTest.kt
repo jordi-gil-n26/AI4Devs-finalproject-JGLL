@@ -1,6 +1,7 @@
 package com.stayhub.presentation.api
 
 import com.stayhub.application.search.SearchPropertiesUseCase
+import com.stayhub.domain.property.GeocodeService
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertySearchFilters
 import io.mockk.coEvery
@@ -13,7 +14,8 @@ import java.util.*
 
 class SearchControllerTest {
     private val searchUseCase = mockk<SearchPropertiesUseCase>()
-    private val controller = SearchController(searchUseCase)
+    private val geocodeService = mockk<GeocodeService>()
+    private val controller = SearchController(searchUseCase, geocodeService)
     private val client = WebTestClient.bindToController(controller).build()
 
     @Test

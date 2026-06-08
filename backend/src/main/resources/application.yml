@@ -42,6 +42,10 @@ management:
     health:
       show-details: when-authorized
 
+# Mapbox configuration — API key for geocoding service.
+mapbox:
+  api-key: ${MAPBOX_API_KEY:default-token}
+
 # CORS allowed origins for the frontend dev server (Next.js on :3000).
 # Comma-separated list when overridden via env.
 stayhub:
