@@ -44,7 +44,7 @@ management:
 
 # Mapbox configuration — API key for geocoding service.
 mapbox:
-  api-key: ${MAPBOX_API_KEY:default-token}
+  api-key: ${MAPBOX_API_KEY:pk_test_4x4x4x4x4x4x4x4x4x4x4x4x4x4x4x4x4x4x}
 
 # CORS allowed origins for the frontend dev server (Next.js on :3000).
 # Comma-separated list when overridden via env.
