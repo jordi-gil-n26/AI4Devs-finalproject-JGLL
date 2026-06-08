@@ -4,6 +4,8 @@ import com.stayhub.application.search.SearchPropertiesUseCase
 import com.stayhub.domain.property.GeocodeService
 import com.stayhub.domain.property.PropertySearchFilters
 import com.stayhub.presentation.dto.search.*
+import com.stayhub.presentation.error.ValidationException
+import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
 
 @RestController
@@ -12,6 +14,8 @@ class SearchController(
     private val searchUseCase: SearchPropertiesUseCase,
     private val geocodeService: GeocodeService,
 ) {
+    private val log = LoggerFactory.getLogger(javaClass)
+
     @GetMapping("/search")
     suspend fun search(
         @RequestParam sw_lat: Double,
@@ -27,6 +31,50 @@ class SearchController(
         @RequestParam(defaultValue = "1") page: Int,
         @RequestParam(defaultValue = "20") size: Int,
     ): SearchResultsResponse {
+        // Validate coordinate ranges
+        if (sw_lat < -90 || sw_lat > 90) {
+            throw ValidationException("sw_lat must be between -90 and 90, got $sw_lat")
+        }
+        if (sw_lng < -180 || sw_lng > 180) {
+            throw ValidationException("sw_lng must be between -180 and 180, got $sw_lng")
+        }
+        if (ne_lat < -90 || ne_lat > 90) {
+            throw ValidationException("ne_lat must be between -90 and 90, got $ne_lat")
+        }
+        if (ne_lng < -180 || ne_lng > 180) {
+            throw ValidationException("ne_lng must be between -180 and 180, got $ne_lng")
+        }
+
+        // Validate date format
+        if (!check_in.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+            throw ValidationException("check_in format must be YYYY-MM-DD, got $check_in")
+        }
+        if (!check_out.matches(Regex("\\d{4}-\\d{2}-\\d{2}"))) {
+            throw ValidationException("check_out format must be YYYY-MM-DD, got $check_out")
+        }
+
+        // Validate prices
+        if (min_price != null && min_price < 0) {
+            throw ValidationException("min_price must be >= 0, got $min_price")
+        }
+        if (max_price != null && max_price < 0) {
+            throw ValidationException("max_price must be >= 0, got $max_price")
+        }
+
+        // Validate pagination
+        if (page <= 0) {
+            throw ValidationException("page must be > 0, got $page")
+        }
+        if (size <= 0) {
+            throw ValidationException("size must be > 0, got $size")
+        }
+
+        log.info(
+            "Search request: bbox=[{},{};{},{}] dates=[{},{}] filters={}",
+            sw_lat, sw_lng, ne_lat, ne_lng, check_in, check_out,
+            "min_price=$min_price, max_price=$max_price, property_type=$property_type, bedrooms=$bedrooms"
+        )
+
         val filters = PropertySearchFilters(
             minPrice = min_price,
             maxPrice = max_price,
@@ -62,13 +110,21 @@ class SearchController(
 
     @GetMapping("/geocode")
     suspend fun geocode(@RequestParam q: String): GeocodeResponse {
+        log.info("Geocode request: q={}", q)
         val results = geocodeService.geocode(q)
         return GeocodeResponse(results.map { result ->
-            mapOf(
-                "name" to result.name as Any,
-                "lat" to result.lat as Any,
-                "lng" to result.lng as Any,
-                "bbox" to result.bbox as Any
+            GeocodeResultDto(
+                name = result.name,
+                lat = result.lat,
+                lng = result.lng,
+                bbox = result.bbox?.let {
+                    BoundingBoxDto(
+                        sw_lat = it.swLat,
+                        sw_lng = it.swLng,
+                        ne_lat = it.neLat,
+                        ne_lng = it.neLng
+                    )
+                }
             )
         })
     }

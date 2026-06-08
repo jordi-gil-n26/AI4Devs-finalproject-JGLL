@@ -5,6 +5,7 @@ import com.stayhub.presentation.error.ErrorBody
 import com.stayhub.presentation.error.ErrorCode
 import com.stayhub.presentation.error.ErrorDetail
 import com.stayhub.presentation.error.ErrorResponse
+import com.stayhub.presentation.error.ValidationException
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.http.HttpStatus
@@ -28,6 +29,12 @@ class GlobalExceptionHandler {
     @ExceptionHandler(ApiException::class)
     fun handleApiException(ex: ApiException): ResponseEntity<ErrorResponse> =
         build(ex.code, ex.message, ex.details)
+
+    @ExceptionHandler(ValidationException::class)
+    fun handleValidationException(ex: ValidationException): ResponseEntity<ErrorResponse> {
+        log.warn("Validation error: {}", ex.message)
+        return build(ex.code, ex.message, ex.details)
+    }
 
     @ExceptionHandler(WebExchangeBindException::class)
     fun handleBindException(ex: WebExchangeBindException): ResponseEntity<ErrorResponse> {

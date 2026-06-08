@@ -33,4 +33,18 @@ data class PaginationDto(
     val total_pages: Int,
 )
 
-data class GeocodeResponse(val results: List<Map<String, Any>>)
+data class BoundingBoxDto(
+    val sw_lat: Double,
+    val sw_lng: Double,
+    val ne_lat: Double,
+    val ne_lng: Double,
+)
+
+data class GeocodeResultDto(
+    val name: String,
+    val lat: Double,
+    val lng: Double,
+    val bbox: BoundingBoxDto?,
+)
+
+data class GeocodeResponse(val results: List<GeocodeResultDto>)
