@@ -77,6 +77,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.testcontainers:postgresql")
     testImplementation("org.testcontainers:r2dbc")
+    testImplementation("com.tngtech.archunit:archunit-junit5:1.3.0")
 }
 
 dependencyManagement {

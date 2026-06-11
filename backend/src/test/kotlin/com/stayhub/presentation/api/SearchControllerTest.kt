@@ -5,7 +5,7 @@ import com.stayhub.domain.property.GeocodeService
 import com.stayhub.domain.property.GeocodeResult
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertySearchFilters
-import com.stayhub.presentation.error.ValidationException
+import com.stayhub.application.error.ValidationException
 import com.stayhub.presentation.middleware.GlobalExceptionHandler
 import io.mockk.coEvery
 import io.mockk.mockk

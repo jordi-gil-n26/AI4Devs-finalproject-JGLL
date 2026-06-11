@@ -3,7 +3,7 @@ package com.stayhub.application.search
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertyRepository
 import com.stayhub.domain.property.PropertySearchFilters
-import com.stayhub.presentation.error.ValidationException
+import com.stayhub.application.error.ValidationException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
