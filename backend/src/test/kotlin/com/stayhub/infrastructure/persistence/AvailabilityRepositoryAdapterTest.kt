@@ -44,23 +44,16 @@ class AvailabilityRepositoryAdapterTest {
     private val testTo   = LocalDate.of(2030, 1, 31)
 
     @BeforeEach
-    fun cleanTestRows() = runTest {
+    fun cleanTestRows() {
         // Remove any availability / hold rows we inserted in previous test runs.
-        databaseClient.sql(
-            "DELETE FROM availability_hold WHERE property_id = :pid AND check_in >= :from",
-        )
-            .bind("pid", propertyId)
-            .bind("from", testFrom)
-            .then()
-            .block()
-
-        databaseClient.sql(
-            "DELETE FROM availability WHERE property_id = :pid AND date >= :from",
-        )
-            .bind("pid", propertyId)
-            .bind("from", testFrom)
-            .then()
-            .block()
+        // Anchored to testFrom so seed rows outside this range are untouched.
+        databaseClient.sql("DELETE FROM availability WHERE date >= :testFrom AND property_id = :propertyId")
+            .bind("testFrom", testFrom)
+            .bind("propertyId", propertyId)
+            .then().block()
+        databaseClient.sql("DELETE FROM availability_hold WHERE property_id = :propertyId")
+            .bind("propertyId", propertyId)
+            .then().block()
     }
 
     // ------------------------------------------------------------------
@@ -81,29 +74,47 @@ class AvailabilityRepositoryAdapterTest {
     }
 
     // ------------------------------------------------------------------
-    // Helper to insert a hold row
+    // Helpers to insert hold rows (active or expired)
     // ------------------------------------------------------------------
-    private fun insertHold(
+
+    /** Inserts a hold whose held_until is 10 minutes in the future (active). */
+    private fun insertActiveHold(
         checkIn: LocalDate,
         checkOut: LocalDate,
-        heldUntil: String,       // SQL expression, e.g. "NOW() + INTERVAL '10 minutes'"
+        guestId: UUID = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-000000000001"),
     ) {
-        // Use a seeded guest so the FK on guest_id is satisfied.
-        val guestId = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-000000000001")
         databaseClient.sql(
             """
-            INSERT INTO availability_hold
-                (id, property_id, guest_id, check_in, check_out, held_until, created_at)
-            VALUES
-                (uuid_generate_v4(), :pid, :gid, :checkIn, :checkOut, $heldUntil, NOW())
+            INSERT INTO availability_hold (id, property_id, guest_id, check_in, check_out, held_until, created_at)
+            VALUES (:id, :propertyId, :guestId, :checkIn, :checkOut, NOW() + INTERVAL '10 minutes', NOW())
             """.trimIndent(),
         )
-            .bind("pid", propertyId)
-            .bind("gid", guestId)
+            .bind("id", UUID.randomUUID())
+            .bind("propertyId", propertyId)
+            .bind("guestId", guestId)
             .bind("checkIn", checkIn)
             .bind("checkOut", checkOut)
-            .then()
-            .block()
+            .then().block()
+    }
+
+    /** Inserts a hold whose held_until is 1 minute in the past (expired). */
+    private fun insertExpiredHold(
+        checkIn: LocalDate,
+        checkOut: LocalDate,
+        guestId: UUID = UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-000000000001"),
+    ) {
+        databaseClient.sql(
+            """
+            INSERT INTO availability_hold (id, property_id, guest_id, check_in, check_out, held_until, created_at)
+            VALUES (:id, :propertyId, :guestId, :checkIn, :checkOut, NOW() - INTERVAL '1 minute', NOW())
+            """.trimIndent(),
+        )
+            .bind("id", UUID.randomUUID())
+            .bind("propertyId", propertyId)
+            .bind("guestId", guestId)
+            .bind("checkIn", checkIn)
+            .bind("checkOut", checkOut)
+            .then().block()
     }
 
     // ------------------------------------------------------------------
@@ -174,10 +185,9 @@ class AvailabilityRepositoryAdapterTest {
     @Test
     fun `returns held dates from active availability_hold records`() = runTest {
         // Hold covers Jan 5–7 (check_in inclusive, check_out exclusive → Jan 5 and 6)
-        insertHold(
+        insertActiveHold(
             LocalDate.of(2030, 1, 5),
             LocalDate.of(2030, 1, 7),
-            "NOW() + INTERVAL '10 minutes'",
         )
 
         val result = adapter.findUnavailableDates(propertyId, testFrom, testTo)
@@ -195,10 +205,9 @@ class AvailabilityRepositoryAdapterTest {
     // ------------------------------------------------------------------
     @Test
     fun `does NOT return dates from expired holds`() = runTest {
-        insertHold(
+        insertExpiredHold(
             LocalDate.of(2030, 1, 10),
             LocalDate.of(2030, 1, 12),
-            "NOW() - INTERVAL '1 minute'", // already expired
         )
 
         val result = adapter.findUnavailableDates(propertyId, testFrom, testTo)
@@ -214,10 +223,9 @@ class AvailabilityRepositoryAdapterTest {
         insertAvailability(LocalDate.of(2030, 1, 10), "booked")
 
         // Also create an active hold that covers Jan 10–11.
-        insertHold(
+        insertActiveHold(
             LocalDate.of(2030, 1, 10),
             LocalDate.of(2030, 1, 12),
-            "NOW() + INTERVAL '10 minutes'",
         )
 
         val result = adapter.findUnavailableDates(propertyId, testFrom, testTo)
@@ -228,5 +236,31 @@ class AvailabilityRepositoryAdapterTest {
         val jan11 = result.first { it.date == LocalDate.of(2030, 1, 11) }
         jan10.reason shouldBe "booked"
         jan11.reason shouldBe "held"
+    }
+
+    // ------------------------------------------------------------------
+    // Test: cross-boundary hold — dates outside range are NOT returned
+    // ------------------------------------------------------------------
+    @Test
+    fun `clips cross-boundary hold to queried range and excludes out-of-range dates`() = runTest {
+        // Hold spans Jan 28 – Feb 3 (check_out exclusive).
+        // Querying Jan 1–31 should return only Jan 28, 29, 30, 31 (4 dates).
+        insertActiveHold(
+            LocalDate.of(2030, 1, 28),
+            LocalDate.of(2030, 2, 3),
+        )
+
+        val result = adapter.findUnavailableDates(propertyId, testFrom, testTo)
+
+        result shouldHaveSize 4
+        result.map { it.date } shouldBe listOf(
+            LocalDate.of(2030, 1, 28),
+            LocalDate.of(2030, 1, 29),
+            LocalDate.of(2030, 1, 30),
+            LocalDate.of(2030, 1, 31),
+        )
+        result.all { it.reason == "held" } shouldBe true
+        // Feb 1 and Feb 2 must NOT be present
+        result.none { it.date.monthValue == 2 } shouldBe true
     }
 }

@@ -6,6 +6,7 @@ import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
@@ -55,14 +56,21 @@ class ReviewRepositoryAdapterTest {
     private val insertedBookingIds = mutableListOf<UUID>()
     private val insertedReviewIds  = mutableListOf<UUID>()
 
+    @BeforeEach
+    fun cleanReviewRows() {
+        // Guard against dirty state left by aborted runs.
+        databaseClient.sql("DELETE FROM review WHERE property_id = :id")
+            .bind("id", cleanPropertyId)
+            .then().block()
+    }
+
     @AfterEach
     fun cleanInsertedRows() {
-        if (insertedReviewIds.isNotEmpty()) {
-            val ids = insertedReviewIds.joinToString(",") { "'$it'::uuid" }
-            databaseClient.sql("DELETE FROM review WHERE id IN ($ids)")
-                .then().block()
-            insertedReviewIds.clear()
-        }
+        // Keep DB clean for other suites after each test.
+        databaseClient.sql("DELETE FROM review WHERE property_id = :id")
+            .bind("id", cleanPropertyId)
+            .then().block()
+        insertedReviewIds.clear()
         if (insertedBookingIds.isNotEmpty()) {
             val ids = insertedBookingIds.joinToString(",") { "'$it'::uuid" }
             databaseClient.sql("DELETE FROM booking WHERE id IN ($ids)")
@@ -159,6 +167,7 @@ class ReviewRepositoryAdapterTest {
         page.content[0].propertyId shouldBe seededPropertyId
         page.content[0].rating shouldBe 5
         page.content[0].guestFirstName shouldBe "Test" // guest first_name from seed
+        page.content[0].guestId shouldBe UUID.fromString("bbbbbbbb-bbbb-bbbb-bbbb-000000000005")
     }
 
     // ------------------------------------------------------------------

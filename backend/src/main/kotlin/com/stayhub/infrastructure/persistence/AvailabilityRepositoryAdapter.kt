@@ -44,15 +44,18 @@ class AvailabilityRepositoryAdapter(
             .awaitSingle()
 
         // Query active holds (held_until > NOW()) that overlap with the range
-        // A hold covers dates from check_in (inclusive) to check_out (exclusive)
+        // A hold covers dates from check_in (inclusive) to check_out (exclusive).
+        // The lateral join clips generated series dates to [from, to] so a hold
+        // spanning across the boundary does not leak out-of-range dates.
         val holdsQuery = """
-            SELECT generate_series(check_in, check_out - INTERVAL '1 day', INTERVAL '1 day')::date as date,
-                   'held' as reason
-            FROM availability_hold
-            WHERE property_id = :propertyId
-              AND held_until > NOW()
-              AND check_in <= :to
-              AND check_out > :from
+            SELECT gs.date::date as date, 'held' as reason
+            FROM availability_hold h,
+                 generate_series(h.check_in::timestamp, (h.check_out - INTERVAL '1 day')::timestamp, INTERVAL '1 day') AS gs(date)
+            WHERE h.property_id = :propertyId
+              AND h.held_until > NOW()
+              AND h.check_in <= :to
+              AND h.check_out > :from
+              AND gs.date::date BETWEEN :from AND :to
         """.trimIndent()
 
         val heldDates = databaseClient.sql(holdsQuery)
