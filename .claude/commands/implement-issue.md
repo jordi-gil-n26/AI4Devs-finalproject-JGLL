@@ -32,6 +32,14 @@ Use the `superpowers:executing-plans` workflow to implement GitHub issue **$ARGU
    - Implement the minimum code to make them pass.
    - Refactor only if needed; keep tests green.
 5. **Verify before completion.** Run the full validation suite (build, lint/format, unit tests, integration tests where applicable) and show me the actual output. Do not proceed if anything fails.
+5a. **Architecture review (backend changes only).** If any changed files live under `backend/src/main/kotlin/`, dispatch the `arch-reviewer` agent:
+   ```
+   Agent({
+     subagent_type: "arch-reviewer",
+     prompt: "Review these files for Clean Architecture violations: <paste changed file paths and their full content>"
+   })
+   ```
+   Do not open the PR if the reviewer returns VIOLATIONS FOUND with Critical or Important severity. Fix first, then re-run validation.
 6. **Commit.** Use Conventional Commits and include the issue reference, e.g.:
    `feat(booking): add availability check (#$ARGUMENTS)`
    Keep every commit scoped to this issue.
