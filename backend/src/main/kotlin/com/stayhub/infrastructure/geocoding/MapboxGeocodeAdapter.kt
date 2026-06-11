@@ -39,18 +39,37 @@ class MapboxGeocodeAdapter(
 
         logger.info("Geocoding query: {}", query)
 
-        // NOTE: This is a stub implementation awaiting real Mapbox API integration.
-        // The real implementation would:
-        // 1. Make HTTP call to https://api.mapbox.com/geocoding/v5/mapbox.places/{query}.json?access_token={apiKey}
-        // 2. Parse the Mapbox GeoJSON response
-        // 3. Map features to GeocodeResult objects with bounding boxes
-        // 4. Handle rate limiting, timeouts, and authentication errors
-        //
-        // Real implementation task: T026 (Phase 2 - add RestTemplate call with error handling)
-        throw NotImplementedError(
-            "Geocoding with Mapbox API is not yet implemented. " +
-            "This adapter is in mock phase. To enable geocoding, implement real HTTP " +
-            "integration with Mapbox Geocoding API v5. See T026 for implementation details."
+        // Hardcoded results for demo cities — enables Phase 3 search by location
+        // Real implementation: T026 (Phase 2 - integrate Mapbox Geocoding API v5)
+        val demoLocations = mapOf(
+            "barcelona" to GeocodeResult(
+                name = "Barcelona, Spain",
+                lat = 41.3851,
+                lng = 2.1734,
+                bbox = GeocodeResult.BoundingBox(swLat = 40.0, swLng = 2.0, neLat = 42.0, neLng = 4.0)
+            ),
+            "madrid" to GeocodeResult(
+                name = "Madrid, Spain",
+                lat = 40.4168,
+                lng = -3.7038,
+                bbox = GeocodeResult.BoundingBox(swLat = 40.0, swLng = -3.5, neLat = 40.5, neLng = -3.0)
+            ),
+            "lisbon" to GeocodeResult(
+                name = "Lisbon, Portugal",
+                lat = 38.7223,
+                lng = -9.1393,
+                bbox = GeocodeResult.BoundingBox(swLat = 38.6, swLng = -9.2, neLat = 38.8, neLng = -9.0)
+            ),
+            "paris" to GeocodeResult(
+                name = "Paris, France",
+                lat = 48.8566,
+                lng = 2.3522,
+                bbox = GeocodeResult.BoundingBox(swLat = 48.7, swLng = 2.2, neLat = 48.9, neLng = 2.5)
+            ),
         )
+
+        val lowerQuery = query.lowercase()
+        return demoLocations.filterKeys { it.contains(lowerQuery) || lowerQuery.contains(it) }
+            .values.toList()
     }
 }

@@ -42,18 +42,32 @@ export default function SearchPage() {
   });
   const propertyGridRef = useRef<HTMLDivElement>(null);
 
-  // Parse URL query params into search filters
-  const searchFilters = useMemo(() => {
-    const sw_lat = parseFloat(searchParams.get('swLat') || '40');
-    const sw_lng = parseFloat(searchParams.get('swLng') || '2');
-    const ne_lat = parseFloat(searchParams.get('neLat') || '42');
-    const ne_lng = parseFloat(searchParams.get('neLng') || '4');
+  // Geocode location if provided
+  const location = searchParams.get('location') || '';
+  const { data: geocodeResults } = useGeocode(location);
+
+  // Determine bounding box: use geocoded results or URL params or default
+  const bbox = useMemo(() => {
+    if (geocodeResults && geocodeResults.length > 0) {
+      const result = geocodeResults[0];
+      return result.bbox || { sw_lat: 40, sw_lng: 2, ne_lat: 42, ne_lng: 4 };
+    }
 
     return {
-      sw_lat,
-      sw_lng,
-      ne_lat,
-      ne_lng,
+      sw_lat: parseFloat(searchParams.get('swLat') || '40'),
+      sw_lng: parseFloat(searchParams.get('swLng') || '2'),
+      ne_lat: parseFloat(searchParams.get('neLat') || '42'),
+      ne_lng: parseFloat(searchParams.get('neLng') || '4'),
+    };
+  }, [geocodeResults, searchParams]);
+
+  // Parse URL query params into search filters
+  const searchFilters = useMemo(() => {
+    return {
+      sw_lat: bbox.sw_lat,
+      sw_lng: bbox.sw_lng,
+      ne_lat: bbox.ne_lat,
+      ne_lng: bbox.ne_lng,
       check_in: searchParams.get('checkIn') || '',
       check_out: searchParams.get('checkOut') || '',
       page: parseInt(searchParams.get('page') || '1', 10),
@@ -78,7 +92,7 @@ export default function SearchPage() {
         : [],
       size: 20,
     };
-  }, [searchParams]);
+  }, [bbox, searchParams]);
 
   // Fetch properties from API
   const { data: searchResults, isLoading } = usePropertySearch(
