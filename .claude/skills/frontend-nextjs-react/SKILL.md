@@ -5,6 +5,24 @@ description: Use when implementing or modifying StayHub frontend code (Next.js 1
 
 # StayHub Frontend (Next.js + React) Skill
 
+## Companion Skill
+
+For React/Next.js performance rules (data fetching waterfalls, bundle size,
+re-render optimization, server-side caching), use **vercel-react-best-practices**
+— the official Vercel Engineering performance skill, installed locally at
+`.claude/skills/vercel-react-best-practices/`. It contains 70 rules across
+8 categories with incorrect/correct code examples.
+
+The Vercel skill covers the *generic* React/Next.js patterns; this skill covers
+the *StayHub-specific* conventions. Read both when writing performance-sensitive
+code (data fetching, lists, calendar interactions, Stripe Elements).
+
+For Phase 5+ work, the highest-impact Vercel categories are:
+- **Eliminating Waterfalls** — parallelize property + availability + price fetches
+- **Bundle Size Optimization** — Stripe Elements, calendar libs, icon libs
+- **Re-render Optimization** — calendar/date pickers, live price recomputation
+- **Rendering Performance** — long property lists, photo galleries
+
 ## Stack
 
 - Next.js 15+ (App Router, NOT Pages Router)
