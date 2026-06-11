@@ -1,5 +1,7 @@
 package com.stayhub.presentation.dto.property
 
+import com.fasterxml.jackson.annotation.JsonProperty
+
 data class PropertyDetailsResponse(
     val id: String,
     val title: String,
@@ -36,6 +38,7 @@ data class PropertyDetailsResponse(
         val id: String,
         val first_name: String,
         val avatar_url: String?,
+        @get:JsonProperty("is_verified")
         val is_verified: Boolean,
     )
 }

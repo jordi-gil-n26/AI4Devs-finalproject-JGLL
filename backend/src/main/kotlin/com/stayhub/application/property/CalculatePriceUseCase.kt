@@ -29,11 +29,11 @@ class CalculatePriceUseCase(
             ?: throw NotFoundException("Property not found: $propertyId")
 
         val nights = ChronoUnit.DAYS.between(checkIn, checkOut).toInt()
-        val subtotal = property.nightlyRateEur * nights
-        val cleaning = property.cleaningFeeEur
-        val serviceFee = subtotal * 0.12
+        val subtotal = round2(property.nightlyRateEur * nights)
+        val cleaning = round2(property.cleaningFeeEur)
+        val serviceFee = round2(subtotal * 0.12)
         val tax = 0.0  // v1: tax_rate is 0%
-        val total = subtotal + cleaning + serviceFee + tax
+        val total = round2(subtotal + cleaning + serviceFee + tax)
 
         return PriceBreakdown(
             propertyId = propertyId,
@@ -48,4 +48,6 @@ class CalculatePriceUseCase(
             totalEur = total,
         )
     }
+
+    private fun round2(value: Double): Double = Math.round(value * 100.0) / 100.0
 }
