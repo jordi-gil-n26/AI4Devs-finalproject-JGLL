@@ -71,12 +71,10 @@ class ReviewRepositoryAdapterTest {
             .bind("id", cleanPropertyId)
             .then().block()
         insertedReviewIds.clear()
-        if (insertedBookingIds.isNotEmpty()) {
-            val ids = insertedBookingIds.joinToString(",") { "'$it'::uuid" }
-            databaseClient.sql("DELETE FROM booking WHERE id IN ($ids)")
-                .then().block()
-            insertedBookingIds.clear()
-        }
+        databaseClient.sql("DELETE FROM booking WHERE property_id = :id")
+            .bind("id", cleanPropertyId)
+            .then().block()
+        insertedBookingIds.clear()
     }
 
     // ------------------------------------------------------------------
