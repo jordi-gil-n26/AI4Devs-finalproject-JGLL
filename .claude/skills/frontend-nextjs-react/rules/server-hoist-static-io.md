@@ -144,6 +144,6 @@ When not to use this pattern:
 - Large files that would consume too much memory if kept loaded
 - Sensitive data that shouldn't persist in memory
 
-With Vercel's [Fluid Compute](https://vercel.com/docs/fluid-compute), module-level caching is especially effective because multiple concurrent requests share the same function instance. The static assets stay loaded in memory across requests without cold start penalties.
+On serverless platforms that share a single function instance across concurrent requests, module-level caching is especially effective: the static assets stay loaded in memory across requests without cold start penalties.
 
 In traditional serverless, each cold start re-executes module-level code, but subsequent warm invocations reuse the loaded assets until the instance is recycled.

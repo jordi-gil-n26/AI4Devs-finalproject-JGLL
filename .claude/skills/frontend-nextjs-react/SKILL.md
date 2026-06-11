@@ -1,27 +1,9 @@
 ---
 name: frontend-nextjs-react
-description: Use when implementing or modifying StayHub frontend code (Next.js 15 App Router + React 19 + TypeScript + TanStack Query + Tailwind + vitest). Encodes service/component patterns, conventions, and pitfalls observed in Phase 3+4 (e.g. QueryClientProvider must be in root layout, never hardcode API URLs, memoize TanStack Query params, snake_case JSON contract). Reference for service hooks, components, pages, and tests in this codebase.
+description: Use when implementing or modifying StayHub frontend code (Next.js 15 App Router + React 19 + TypeScript + TanStack Query + Tailwind + vitest). Encodes service/component patterns, conventions, pitfalls observed in Phase 3+4 (QueryClientProvider in root layout, never hardcode API URLs, memoize TanStack Query params, snake_case JSON contract), AND a `rules/` directory with 70 React/Next.js performance rules across 8 categories (waterfalls, bundle size, server-side, client-side, re-renders, rendering, JS, advanced) — load individual rule files on demand for performance-sensitive work.
 ---
 
 # StayHub Frontend (Next.js + React) Skill
-
-## Companion Skill
-
-For React/Next.js performance rules (data fetching waterfalls, bundle size,
-re-render optimization, server-side caching), use **vercel-react-best-practices**
-— the official Vercel Engineering performance skill, installed locally at
-`.claude/skills/vercel-react-best-practices/`. It contains 70 rules across
-8 categories with incorrect/correct code examples.
-
-The Vercel skill covers the *generic* React/Next.js patterns; this skill covers
-the *StayHub-specific* conventions. Read both when writing performance-sensitive
-code (data fetching, lists, calendar interactions, Stripe Elements).
-
-For Phase 5+ work, the highest-impact Vercel categories are:
-- **Eliminating Waterfalls** — parallelize property + availability + price fetches
-- **Bundle Size Optimization** — Stripe Elements, calendar libs, icon libs
-- **Re-render Optimization** — calendar/date pickers, live price recomputation
-- **Rendering Performance** — long property lists, photo galleries
 
 ## Stack
 
@@ -173,3 +155,47 @@ If page renders but shows error/blank/console errors, NOT done. (See `WAVE4-PHAS
 - ❌ Hardcoded URL or API key (must come from `process.env.NEXT_PUBLIC_*`)
 - ❌ Component fetches its own data instead of accepting props (unless it's a self-driving widget like `PriceBreakdown`)
 - ❌ Skipped browser verification — `npm run test` passing is necessary but not sufficient
+
+## Performance Rules
+
+For React and Next.js performance patterns (data fetching, bundle size,
+re-renders, rendering, server-side caching), this skill includes a `rules/`
+directory with **70 rules across 8 categories**, prioritised by impact. Each
+rule is a separate markdown file with `incorrect` and `correct` code examples.
+
+Load only the rule(s) relevant to the task at hand — they are designed to be
+read individually rather than as a single block.
+
+### Categories (high → low impact)
+
+| Priority | Category | Prefix | When to load |
+|---|---|---|---|
+| 1 | **Eliminating Waterfalls** | `async-` | New page or service hook that fetches data |
+| 2 | **Bundle Size Optimization** | `bundle-` | Adding a heavy dependency (Stripe, charts, calendar, icons) |
+| 3 | **Server-Side Performance** | `server-` | Working with Server Components, RSC fetches, server actions |
+| 4 | **Client-Side Data Fetching** | `client-` | Adding new TanStack Query hook, listeners, localStorage |
+| 5 | **Re-render Optimization** | `rerender-` | Component with derived state, expensive renders, state in callbacks |
+| 6 | **Rendering Performance** | `rendering-` | Long lists, hydration, conditional rendering, scripts |
+| 7 | **JavaScript Performance** | `js-` | Hot loops, repeated lookups, sort/filter chains |
+| 8 | **Advanced Patterns** | `advanced-` | Custom hooks with refs, latest-value patterns |
+
+### Phase 5+ priority loadout (booking + checkout)
+
+When implementing a booking widget, checkout flow, or anything Stripe-adjacent,
+load these rules first:
+
+- `rules/async-parallel.md` — parallelise property + availability + price fetches
+- `rules/bundle-dynamic-imports.md` — lazy-load Stripe Elements / heavy widgets
+- `rules/bundle-barrel-imports.md` — keep icon + UI library imports cheap
+- `rules/rerender-derived-state-no-effect.md` — calendar selection, live price
+- `rules/rerender-transitions.md` — non-blocking date / filter updates
+- `rules/rerender-no-inline-components.md` — avoid defining components inside components
+- `rules/rendering-content-visibility.md` — long property lists / review lists
+
+### Full index
+
+See `rules/_sections.md` (upstream sections file) for the complete categorised
+index, or `ls rules/` to list all rule files. Files prefixed with an underscore
+(`_sections.md`, `_template.md`) are housekeeping, not guidance.
+
+Attribution / licence: `rules/ATTRIBUTION.md`.

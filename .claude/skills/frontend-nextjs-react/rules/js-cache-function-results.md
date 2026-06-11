@@ -77,4 +77,4 @@ function onAuthChange() {
 
 Use a Map (not a hook) so it works everywhere: utilities, event handlers, not just React components.
 
-Reference: [How we made the Vercel Dashboard twice as fast](https://vercel.com/blog/how-we-made-the-vercel-dashboard-twice-as-fast)
+Reference: standard memoisation pattern; particularly impactful when JSON parsing or expensive serialisation is in a hot path.
