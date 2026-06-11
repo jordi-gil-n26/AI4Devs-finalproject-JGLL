@@ -6,9 +6,11 @@ import com.stayhub.domain.property.PropertySearchFilters
 import com.stayhub.presentation.error.ValidationException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
+import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 
+@Service
 class SearchPropertiesUseCase(
     private val propertyRepository: PropertyRepository,
 ) {

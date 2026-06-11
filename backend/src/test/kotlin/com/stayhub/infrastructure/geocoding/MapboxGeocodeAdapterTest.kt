@@ -8,15 +8,14 @@ class MapboxGeocodeAdapterTest {
     private val adapter = MapboxGeocodeAdapter(apiKey = "test-valid-token")
 
     @Test
-    fun `throws NotImplementedError until real Mapbox API is implemented`() = runBlocking {
-        val exception = assertThrows<NotImplementedError> {
-            runBlocking {
-                adapter.geocode("Barcelona")
-            }
-        }
+    fun `returns demo Barcelona location when querying barcelona`() = runBlocking {
+        val result = adapter.geocode("Barcelona")
 
-        assert(exception.message?.contains("Mapbox API") == true) { "Message should mention Mapbox API" }
-        assert(exception.message?.contains("not yet implemented") == true) { "Message should indicate not implemented" }
+        assert(result.isNotEmpty()) { "Result should contain Barcelona" }
+        assert(result[0].name == "Barcelona, Spain") { "Name should be Barcelona, Spain" }
+        assert(result[0].lat == 41.3851) { "Latitude should match Barcelona" }
+        assert(result[0].lng == 2.1734) { "Longitude should match Barcelona" }
+        assert(result[0].bbox != null) { "Should include bounding box" }
     }
 
     @Test
@@ -49,5 +48,28 @@ class MapboxGeocodeAdapterTest {
         assertThrows<IllegalStateException> {
             adapter.validateConfiguration()
         }
+    }
+
+    @Test
+    fun `returns demo Madrid location when querying madrid`() = runBlocking {
+        val result = adapter.geocode("madrid")
+
+        assert(result.isNotEmpty()) { "Result should contain Madrid" }
+        assert(result[0].name == "Madrid, Spain") { "Name should be Madrid, Spain" }
+    }
+
+    @Test
+    fun `returns demo Lisbon location when querying lisbon`() = runBlocking {
+        val result = adapter.geocode("Lisbon")
+
+        assert(result.isNotEmpty()) { "Result should contain Lisbon" }
+        assert(result[0].name == "Lisbon, Portugal") { "Name should be Lisbon, Portugal" }
+    }
+
+    @Test
+    fun `returns empty list for unmapped city`() = runBlocking {
+        val result = adapter.geocode("Unknown City")
+
+        assert(result.isEmpty()) { "Result should be empty for unmapped city" }
     }
 }
