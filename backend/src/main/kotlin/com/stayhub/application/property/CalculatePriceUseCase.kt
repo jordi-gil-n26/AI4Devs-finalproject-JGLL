@@ -2,8 +2,8 @@ package com.stayhub.application.property
 
 import com.stayhub.domain.property.PriceBreakdown
 import com.stayhub.domain.property.PropertyRepository
-import com.stayhub.presentation.error.NotFoundException
-import com.stayhub.presentation.error.ValidationException
+import com.stayhub.application.error.NotFoundException
+import com.stayhub.application.error.ValidationException
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit

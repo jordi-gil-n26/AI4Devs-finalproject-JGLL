@@ -10,7 +10,7 @@ import com.stayhub.presentation.dto.property.AvailabilityResponse
 import com.stayhub.presentation.dto.property.PriceBreakdownResponse
 import com.stayhub.presentation.dto.property.PropertyDetailsResponse
 import com.stayhub.presentation.dto.property.ReviewsResponse
-import com.stayhub.presentation.error.ValidationException
+import com.stayhub.application.error.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate

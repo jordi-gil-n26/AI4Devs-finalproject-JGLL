@@ -2,7 +2,7 @@ package com.stayhub.application.property
 
 import com.stayhub.domain.availability.AvailabilityRepository
 import com.stayhub.domain.availability.UnavailableDate
-import com.stayhub.presentation.error.ValidationException
+import com.stayhub.application.error.ValidationException
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.util.UUID

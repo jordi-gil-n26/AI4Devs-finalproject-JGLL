@@ -4,7 +4,7 @@ import com.stayhub.application.search.SearchPropertiesUseCase
 import com.stayhub.domain.property.GeocodeService
 import com.stayhub.domain.property.PropertySearchFilters
 import com.stayhub.presentation.dto.search.*
-import com.stayhub.presentation.error.ValidationException
+import com.stayhub.application.error.ValidationException
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
 

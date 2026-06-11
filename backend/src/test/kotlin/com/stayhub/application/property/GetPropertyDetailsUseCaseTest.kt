@@ -2,7 +2,7 @@ package com.stayhub.application.property
 
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertyRepository
-import com.stayhub.presentation.error.NotFoundException
+import com.stayhub.application.error.NotFoundException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import io.mockk.coEvery

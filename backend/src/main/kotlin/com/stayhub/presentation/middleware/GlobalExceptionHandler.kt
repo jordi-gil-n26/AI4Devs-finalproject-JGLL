@@ -1,11 +1,11 @@
 package com.stayhub.presentation.middleware
 
-import com.stayhub.presentation.error.ApiException
+import com.stayhub.application.error.ApiException
+import com.stayhub.application.error.ErrorCode
+import com.stayhub.application.error.ErrorDetail
+import com.stayhub.application.error.ValidationException
 import com.stayhub.presentation.error.ErrorBody
-import com.stayhub.presentation.error.ErrorCode
-import com.stayhub.presentation.error.ErrorDetail
 import com.stayhub.presentation.error.ErrorResponse
-import com.stayhub.presentation.error.ValidationException
 import org.slf4j.LoggerFactory
 import org.slf4j.MDC
 import org.springframework.http.HttpStatus
@@ -20,6 +20,9 @@ import org.springframework.web.server.ServerWebInputException
  * Renders all uncaught exceptions as the shared ErrorResponse envelope
  * (contracts/error-responses.yml). The trace_id is read from MDC, which is
  * populated by TraceIdFilter under the "traceId" key.
+ *
+ * The ErrorCode → HttpStatus mapping is owned by this class so that
+ * application-layer ErrorCode stays framework-free.
  */
 @RestControllerAdvice
 class GlobalExceptionHandler {
@@ -79,6 +82,22 @@ class GlobalExceptionHandler {
                 traceId = MDC.get("traceId"),
             ),
         )
-        return ResponseEntity.status(code.status).body(body)
+        return ResponseEntity.status(httpStatusOf(code)).body(body)
+    }
+
+    /**
+     * Maps the framework-free [ErrorCode] (application layer) to an HTTP status.
+     * Lives here so that application/error/ErrorCode.kt stays free of Spring imports.
+     */
+    private fun httpStatusOf(code: ErrorCode): HttpStatus = when (code) {
+        ErrorCode.VALIDATION_ERROR -> HttpStatus.BAD_REQUEST
+        ErrorCode.NOT_FOUND -> HttpStatus.NOT_FOUND
+        ErrorCode.UNAUTHORIZED -> HttpStatus.UNAUTHORIZED
+        ErrorCode.FORBIDDEN -> HttpStatus.FORBIDDEN
+        ErrorCode.DATES_UNAVAILABLE -> HttpStatus.CONFLICT
+        ErrorCode.PAYMENT_FAILED -> HttpStatus.BAD_REQUEST
+        ErrorCode.HOLD_EXPIRED -> HttpStatus.CONFLICT
+        ErrorCode.BOOKING_CANNOT_CANCEL -> HttpStatus.UNPROCESSABLE_ENTITY
+        ErrorCode.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
     }
 }

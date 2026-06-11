@@ -8,7 +8,7 @@ import com.stayhub.domain.availability.UnavailableDate
 import com.stayhub.domain.property.PriceBreakdown
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.review.Review
-import com.stayhub.presentation.error.NotFoundException
+import com.stayhub.application.error.NotFoundException
 import com.stayhub.presentation.middleware.GlobalExceptionHandler
 import io.mockk.coEvery
 import io.mockk.mockk

@@ -1,8 +1,11 @@
-package com.stayhub.presentation.error
+package com.stayhub.application.error
 
 /**
- * Base type for application errors that map to a known [ErrorCode] and HTTP status.
- * Domain and application layers throw subtypes; GlobalExceptionHandler renders them.
+ * Base type for application-thrown errors that map to a known [ErrorCode].
+ * Domain and application layers throw subtypes; the presentation layer's
+ * GlobalExceptionHandler renders them as HTTP responses.
+ *
+ * No framework dependencies — this is part of the application layer.
  */
 sealed class ApiException(
     val code: ErrorCode,
