@@ -201,6 +201,54 @@ If the app fails to boot or curl returns 500 / wrong shape, the task is NOT done
 - Properties in `property` table: `cccccccc-cccc-cccc-cccc-00000000{Type}{N:03d}` — Barcelona = 1001..1005, Madrid = 2001..2004, Lisbon = 3001..3005.
 - 15 properties total, 0 reviews, 0 bookings (Phase 5 will seed bookings).
 
+## Domain Aggregate Checklist (lessons from T049)
+
+When writing a domain aggregate, verify all three of these before committing:
+
+### 1. Derived-but-stored fields must be cross-validated in `init {}`
+
+If a field is computed from other fields but also stored as a column (e.g. `nights` derived from `checkIn`/`checkOut`), the `init {}` block must assert consistency:
+
+```kotlin
+// Booking.kt — nights is stored in DB but derivable from dates
+init {
+    require(nights == ChronoUnit.DAYS.between(checkIn, checkOut).toInt()) {
+        "nights ($nights) does not match checkOut - checkIn"
+    }
+}
+```
+
+Without this guard, a caller can silently persist `nights = 99` for a two-night booking. The DB stores wrong data; no error is thrown until you manually notice the inconsistency.
+
+**Rule:** any redundant column that can be recomputed from sibling fields must be validated for consistency at construction time.
+
+### 2. Check the Flyway migration's CHECK constraint when adding a new status value
+
+When a domain `enum` has a value that did not exist in the original schema (e.g. `PENDING` was added to `BookingStatus` but the V5 migration only listed `'confirmed'`, `'cancelled'`, `'completed'`), every insert of the new status fails at runtime with a CHECK constraint violation.
+
+**Rule:** after defining or extending a status enum, grep the Flyway migrations for the relevant `CHECK (status IN (...))` clause and verify it includes **every** enum value:
+
+```bash
+grep -r "status IN" backend/src/main/resources/db/migration/
+```
+
+If a value is missing, create a new migration to extend the constraint — never edit an already-run migration.
+
+### 3. Nullable domain field vs NOT NULL DB column
+
+If a DB column is `NOT NULL`, the domain field should be non-nullable (`String`, not `String?`). A nullable domain field with a `NOT NULL` column will fail at insert time, not at compile time.
+
+**Rule:** map DB nullability to Kotlin nullability 1-for-1. Before merging a new aggregate, compare each field against its column definition in the Flyway migration:
+
+| DB column | Kotlin type |
+|---|---|
+| `VARCHAR NOT NULL` | `String` |
+| `VARCHAR` (nullable) | `String?` |
+| `TIMESTAMP NOT NULL` | `Instant` |
+| `TIMESTAMP` | `Instant?` |
+
+---
+
 ## Anti-Patterns to Avoid
 
 - **Domain entities importing ORM, web, or SDK types** — domain stays framework-free.
@@ -233,3 +281,6 @@ If the app fails to boot or curl returns 500 / wrong shape, the task is NOT done
 - ❌ `bootRun` not actually tested → run it before reporting done
 - ❌ Test passes with mocked DB → for repository changes, write integration test with TestContainers
 - ❌ Response field misnamed (e.g. `_verified` instead of `is_verified`) → check OpenAPI contract before merging
+- ❌ New status value in domain enum not added to Flyway CHECK constraint → `grep -r "status IN" db/migration/` and add a new migration if missing (T049 bug)
+- ❌ Derived-but-stored field (e.g. `nights`) not validated in `init {}` → silently persists wrong data (T049 bug)
+- ❌ Domain field nullable but DB column is NOT NULL → insert fails at runtime not compile time (T049 bug)
