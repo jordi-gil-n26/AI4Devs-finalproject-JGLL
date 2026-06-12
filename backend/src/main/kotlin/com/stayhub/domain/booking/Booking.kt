@@ -3,6 +3,7 @@ package com.stayhub.domain.booking
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 /**
@@ -37,8 +38,7 @@ data class Booking(
     val taxEur: BigDecimal,
     val totalEur: BigDecimal,
     val status: BookingStatus,
-    /** Nullable — populated by Stripe stub / real integration. */
-    val stripePaymentIntentId: String?,
+    val stripePaymentIntentId: String,
     val cancellationReason: String?,
     val cancelledAt: Instant?,
     val createdAt: Instant,
@@ -50,6 +50,10 @@ data class Booking(
         }
         require(guestCount > 0) {
             "guestCount must be > 0, was $guestCount"
+        }
+        val expectedNights = ChronoUnit.DAYS.between(checkIn, checkOut).toInt()
+        require(nights == expectedNights) {
+            "nights ($nights) does not match checkOut - checkIn ($expectedNights days)"
         }
     }
 

@@ -1,6 +1,7 @@
 package com.stayhub.domain.booking
 
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.matchers.comparables.shouldBeGreaterThan
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import org.junit.jupiter.api.Test
@@ -31,7 +32,7 @@ class BookingTest {
         taxEur = BigDecimal("0.00"),
         totalEur = BigDecimal("468.00"),
         status = status,
-        stripePaymentIntentId = null,
+        stripePaymentIntentId = "pi_test_stub_001",
         cancellationReason = null,
         cancelledAt = null,
         createdAt = Instant.now(),
@@ -81,13 +82,23 @@ class BookingTest {
         }
     }
 
+    @Test
+    fun `init throws when nights does not match date range`() {
+        shouldThrow<IllegalArgumentException> {
+            validBooking().copy(nights = 99)
+        }
+    }
+
     // ─── confirm() ──────────────────────────────────────────────────────────
 
     @Test
     fun `confirm transitions PENDING to CONFIRMED`() {
-        val confirmed = validBooking(status = BookingStatus.PENDING).confirm()
+        val original = validBooking(status = BookingStatus.PENDING)
+        Thread.sleep(2) // ensure at least 1 ms elapses so updatedAt differs
+        val confirmed = original.confirm()
 
         confirmed.status shouldBe BookingStatus.CONFIRMED
+        confirmed.updatedAt shouldBeGreaterThan original.updatedAt
     }
 
     @Test
