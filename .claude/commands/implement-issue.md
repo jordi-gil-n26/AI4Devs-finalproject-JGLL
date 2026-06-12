@@ -25,7 +25,15 @@ Use the `superpowers:executing-plans` workflow to implement GitHub issue **$ARGU
 
 1. **Read the issue.** Fetch issue $ARGUMENTS via `gh issue view $ARGUMENTS` and extract its acceptance criteria.
 2. **Cross-check with `tasks.md`.** Identify the matching task(s). If there is any conflict between the issue and `tasks.md`, stop and report it before writing any code.
-3. **Branch.** Create a dedicated branch (or worktree) for this issue, named to include the issue number (e.g. `issue-$ARGUMENTS-<short-slug>`).
+3. **Worktree.** Create an isolated git worktree for this issue — never work in the main working directory. This is mandatory when multiple issues are implemented in parallel (agents sharing a working directory will see each other's uncommitted files and accidentally include them in commits):
+   ```bash
+   git worktree add .worktrees/issue-$ARGUMENTS-<short-slug> -b issue-$ARGUMENTS-<short-slug>
+   cd .worktrees/issue-$ARGUMENTS-<short-slug>
+   ```
+   All subsequent steps run inside this worktree. Remove it after the PR is merged:
+   ```bash
+   git worktree remove .worktrees/issue-$ARGUMENTS-<short-slug>
+   ```
 4. **Implement using TDD:**
    - Write failing tests first that encode the issue's acceptance criteria.
    - Confirm they fail for the right reasons.
