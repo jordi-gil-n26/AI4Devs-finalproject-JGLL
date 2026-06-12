@@ -56,10 +56,17 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          # Temporarily removed the cache config to force a 100% clean download
 
       - name: Install dependencies
-        run: npm install --include=dev --no-audit --no-fund
+        run: npm install --include=dev
+
+      # This step will expose exactly why vitest is missing
+      - name: Troubleshoot and Debug
+        run: |
+          echo "=== Content of package.json ==="
+          cat package.json
+          echo "=== Checking if vitest binary exists ==="
+          ls -la node_modules/.bin/vitest || echo "Vitest binary NOT found in node_modules"
 
       - name: Run tests
         run: npm run test --if-present
