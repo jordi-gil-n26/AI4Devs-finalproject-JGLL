@@ -7,16 +7,20 @@ import io.mockk.mockk
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.utility.DockerImageName
 
 @TestConfiguration
 class TestContainersConfiguration {
     companion object {
-        private val postgresContainer = PostgreSQLContainer("postgres:16-alpine")
+        private val postgresImage = DockerImageName
+            .parse("postgis/postgis:16-3.4")
+            .asCompatibleSubstituteFor("postgres")
+
+        private val postgresContainer = PostgreSQLContainer(postgresImage)
             .withDatabaseName("testdb")
             .withUsername("testuser")
             .withPassword("testpass")
             .apply {
-                withCommand("postgres", "-c", "shared_preload_libraries=postgis")
                 start()
             }
 
@@ -24,6 +28,7 @@ class TestContainersConfiguration {
             System.setProperty("spring.r2dbc.url", "r2dbc:postgresql://${postgresContainer.host}:${postgresContainer.firstMappedPort}/testdb")
             System.setProperty("spring.r2dbc.username", "testuser")
             System.setProperty("spring.r2dbc.password", "testpass")
+            System.setProperty("spring.flyway.enabled", "true")
             System.setProperty("spring.flyway.url", "jdbc:postgresql://${postgresContainer.host}:${postgresContainer.firstMappedPort}/testdb")
             System.setProperty("spring.flyway.user", "testuser")
             System.setProperty("spring.flyway.password", "testpass")
