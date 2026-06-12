@@ -52,21 +52,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Node 20
+      # Upgrading to Node 22 fixes the Ubuntu 24.04 environment incompatibility
+      - name: Set up Node 22
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
+      # --no-package-lock forces npm to ignore the potentially corrupted lockfile entries
       - name: Install dependencies
-        run: npm install --include=dev
-
-      # This step will expose exactly why vitest is missing
-      - name: Troubleshoot and Debug
-        run: |
-          echo "=== Content of package.json ==="
-          cat package.json
-          echo "=== Checking if vitest binary exists ==="
-          ls -la node_modules/.bin/vitest || echo "Vitest binary NOT found in node_modules"
+        run: npm install --include=dev --no-package-lock --no-audit --no-fund
 
       - name: Run tests
         run: npm run test --if-present
