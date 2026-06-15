@@ -85,9 +85,11 @@ export default function PropertyDetailPage() {
 
   const handleReserve = useCallback(() => {
     const qs = new URLSearchParams();
-    if (checkIn) qs.set('check_in', checkIn);
-    if (checkOut) qs.set('check_out', checkOut);
-    router.push(`/checkout/${propertyId}?${qs.toString()}`);
+    qs.set('propertyId', propertyId);
+    if (checkIn) qs.set('checkIn', checkIn);
+    if (checkOut) qs.set('checkOut', checkOut);
+    qs.set('guestCount', '1');
+    router.push(`/booking/checkout?${qs.toString()}`);
   }, [propertyId, checkIn, checkOut, router]);
 
   // ─── Loading state ───────────────────────────────────────────────────────

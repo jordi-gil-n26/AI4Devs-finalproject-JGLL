@@ -1,0 +1,294 @@
+import React from 'react';
+import { render, screen, waitFor, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+
+// --------------------------------------------------------------------------
+// Mock next/navigation
+// --------------------------------------------------------------------------
+
+const mockPush = vi.fn();
+const mockBack = vi.fn();
+const mockSearchParams = new URLSearchParams({
+  propertyId: 'prop-uuid-1',
+  checkIn: '2026-07-10',
+  checkOut: '2026-07-13',
+  guestCount: '2',
+});
+
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: mockPush, back: mockBack }),
+  useSearchParams: () => mockSearchParams,
+}));
+
+// --------------------------------------------------------------------------
+// Mock bookingService
+// --------------------------------------------------------------------------
+
+const mockCreateBookingMutate = vi.fn();
+const mockConfirmBookingMutate = vi.fn();
+
+vi.mock('@/services/bookingService', () => ({
+  useCreateBooking: vi.fn(),
+  useConfirmBooking: vi.fn(),
+}));
+
+import { useCreateBooking, useConfirmBooking } from '@/services/bookingService';
+
+// --------------------------------------------------------------------------
+// Mock propertyService
+// --------------------------------------------------------------------------
+
+vi.mock('@/services/propertyService', () => ({
+  usePropertyDetails: vi.fn(),
+}));
+
+import { usePropertyDetails } from '@/services/propertyService';
+
+// --------------------------------------------------------------------------
+// Mock child components
+// --------------------------------------------------------------------------
+
+vi.mock('@/components/booking/BookingSummary', () => ({
+  BookingSummary: ({
+    priceBreakdown,
+    onHoldExpired,
+  }: {
+    priceBreakdown: { total_eur: number };
+    onHoldExpired: () => void;
+  }) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'booking-summary' },
+      `Total: €${priceBreakdown.total_eur.toFixed(2)}`,
+      React.createElement('button', { onClick: onHoldExpired, 'data-testid': 'trigger-expired' }, 'expire'),
+    ),
+}));
+
+vi.mock('@/components/booking/PaymentForm', () => ({
+  PaymentForm: ({
+    onSuccess,
+    onError,
+  }: {
+    onSuccess: (id: string) => void;
+    onError: (msg: string) => void;
+  }) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'payment-form' },
+      React.createElement('button', { onClick: () => onSuccess('pi_test_123'), 'data-testid': 'mock-pay' }, 'Pay'),
+      React.createElement('button', { onClick: () => onError('Declined'), 'data-testid': 'mock-error' }, 'Fail'),
+    ),
+}));
+
+// --------------------------------------------------------------------------
+// Mock Stripe
+// --------------------------------------------------------------------------
+
+vi.mock('@stripe/react-stripe-js', () => ({
+  Elements: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
+  CardElement: () => React.createElement('div', null),
+  useStripe: () => null,
+  useElements: () => null,
+}));
+
+vi.mock('@stripe/stripe-js', () => ({
+  loadStripe: vi.fn().mockResolvedValue(null),
+}));
+
+// --------------------------------------------------------------------------
+// Import page (after mocks)
+// --------------------------------------------------------------------------
+
+import CheckoutPage from './page';
+
+// --------------------------------------------------------------------------
+// Fixtures
+// --------------------------------------------------------------------------
+
+const mockProperty = {
+  id: 'prop-uuid-1',
+  title: 'Cosy Studio in Berlin',
+  description: 'Nice place.',
+  property_type: 'studio',
+  location: { lat: 52.52, lng: 13.405, city: 'Berlin', country: 'Germany', address: 'Main St', region: null },
+  max_guests: 2,
+  bedrooms: 1,
+  bathrooms: 1,
+  nightly_rate_eur: 120,
+  cleaning_fee_eur: 45,
+  amenities: [],
+  house_rules: [],
+  photos: [{ url: 'https://example.com/p1.jpg', caption: 'Room' }],
+  host: { id: 'h1', first_name: 'Anna', is_verified: true },
+  avg_rating: 4.8,
+  review_count: 5,
+};
+
+const mockBookingResponse = {
+  booking_id: 'booking-uuid-1',
+  reference_number: 'BK-12345678',
+  price_breakdown: {
+    nights: 3,
+    nightly_rate_eur: 120,
+    subtotal_eur: 360,
+    cleaning_fee_eur: 45,
+    service_fee_eur: 48.6,
+    tax_eur: 0,
+    total_eur: 453.6,
+  },
+  stripe_client_secret: 'pi_stub_secret_test',
+  hold_expires_at: new Date(Date.now() + 600_000).toISOString(),
+};
+
+// --------------------------------------------------------------------------
+// Tests
+// --------------------------------------------------------------------------
+
+describe('CheckoutPage', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    // Default: property loaded, booking pending
+    (usePropertyDetails as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockProperty,
+      isLoading: false,
+    });
+
+    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: mockCreateBookingMutate,
+      isPending: false,
+      isIdle: true,
+    });
+
+    (useConfirmBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: mockConfirmBookingMutate,
+      isPending: false,
+    });
+  });
+
+  it('shows loading skeleton when property is loading', () => {
+    (usePropertyDetails as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: undefined,
+      isLoading: true,
+    });
+
+    render(<CheckoutPage />);
+    expect(screen.getByTestId('checkout-loading')).toBeInTheDocument();
+  });
+
+  it('shows loading skeleton when booking creation is pending', () => {
+    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: mockCreateBookingMutate,
+      isPending: true,
+    });
+
+    render(<CheckoutPage />);
+    expect(screen.getByTestId('checkout-loading')).toBeInTheDocument();
+  });
+
+  it('shows error state when booking creation fails with 409', async () => {
+    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: (req: unknown, opts: { onError: (err: { status: number; message: string }) => void }) => {
+        opts.onError({ status: 409, message: 'Conflict' });
+      },
+      isPending: false,
+    });
+
+    render(<CheckoutPage />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('checkout-error')).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/no longer available/i)).toBeInTheDocument();
+  });
+
+  it('shows error state when booking creation fails with generic error', async () => {
+    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: (req: unknown, opts: { onError: (err: { status: number; message: string }) => void }) => {
+        opts.onError({ status: 500, message: 'Internal server error' });
+      },
+      isPending: false,
+    });
+
+    render(<CheckoutPage />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('checkout-error')).toBeInTheDocument(),
+    );
+  });
+
+  it('shows checkout page with summary and form after booking is created', async () => {
+    // Simulate mutate calling onSuccess synchronously
+    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
+        opts.onSuccess(mockBookingResponse);
+      },
+      isPending: false,
+    });
+
+    render(<CheckoutPage />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('checkout-page')).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('booking-summary')).toBeInTheDocument();
+    expect(screen.getByTestId('payment-form')).toBeInTheDocument();
+  });
+
+  it('shows hold-expired state when onHoldExpired is called', async () => {
+    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
+        opts.onSuccess(mockBookingResponse);
+      },
+      isPending: false,
+    });
+
+    render(<CheckoutPage />);
+
+    await waitFor(() => expect(screen.getByTestId('checkout-page')).toBeInTheDocument());
+
+    // Simulate hold expiry via the BookingSummary mock button
+    act(() => {
+      screen.getByTestId('trigger-expired').click();
+    });
+
+    expect(screen.getByTestId('checkout-hold-expired')).toBeInTheDocument();
+    expect(screen.getByText(/back to search/i)).toBeInTheDocument();
+  });
+
+  it('navigates to confirmation page on successful payment', async () => {
+    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
+        opts.onSuccess(mockBookingResponse);
+      },
+      isPending: false,
+    });
+
+    const mockConfirmResponse = {
+      booking_id: 'booking-uuid-1',
+      reference_number: 'BK-12345678',
+      status: 'confirmed' as const,
+      check_in: '2026-07-10',
+      check_out: '2026-07-13',
+      total_eur: 453.6,
+    };
+
+    (useConfirmBooking as ReturnType<typeof vi.fn>).mockReturnValue({
+      mutate: (vars: unknown, opts: { onSuccess: (data: typeof mockConfirmResponse) => void }) => {
+        opts.onSuccess(mockConfirmResponse);
+      },
+      isPending: false,
+    });
+
+    render(<CheckoutPage />);
+
+    await waitFor(() => expect(screen.getByTestId('checkout-page')).toBeInTheDocument());
+
+    // Click "Pay" in the mocked PaymentForm
+    screen.getByTestId('mock-pay').click();
+
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith('/confirmation/booking-uuid-1'),
+    );
+  });
+});
