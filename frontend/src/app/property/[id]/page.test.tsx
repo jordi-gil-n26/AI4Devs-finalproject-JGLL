@@ -243,7 +243,7 @@ describe('PropertyDetailPage', () => {
       render(<PropertyDetailPage />, { wrapper: createWrapper() });
       fireEvent.click(screen.getByTestId('reserve-button'));
       expect(mockPush).toHaveBeenCalledWith(
-        expect.stringContaining('/checkout/prop-uuid-001'),
+        expect.stringContaining('/booking/checkout?propertyId=prop-uuid-001'),
       );
     });
   });
