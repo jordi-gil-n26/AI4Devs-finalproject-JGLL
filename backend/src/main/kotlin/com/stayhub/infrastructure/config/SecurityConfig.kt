@@ -45,6 +45,9 @@ class SecurityConfig {
                     .pathMatchers(HttpMethod.GET, "/api/v1/properties/geocode").permitAll()
                     .pathMatchers(HttpMethod.GET, "/api/v1/properties/**").permitAll()
                     .pathMatchers("/actuator/health", "/actuator/health/**").permitAll()
+                    // Stripe webhook — Stripe cannot send a JWT, so this is excluded from auth.
+                    // Authenticity is verified via HMAC-SHA256 signature in StripeWebhookController.
+                    .pathMatchers("/api/v1/webhooks/**").permitAll()
                     // Protected booking endpoints — require a valid JWT
                     .pathMatchers("/api/v1/bookings/**").authenticated()
                     // Default deny for anything else
