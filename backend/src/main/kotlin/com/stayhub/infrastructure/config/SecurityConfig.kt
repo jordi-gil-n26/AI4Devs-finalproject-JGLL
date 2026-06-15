@@ -7,6 +7,7 @@ import org.springframework.http.HttpMethod
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity
 import org.springframework.security.config.web.server.SecurityWebFiltersOrder
 import org.springframework.security.config.web.server.ServerHttpSecurity
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.security.web.server.SecurityWebFilterChain
 
 /**
@@ -27,6 +28,9 @@ import org.springframework.security.web.server.SecurityWebFilterChain
 class SecurityConfig {
 
     @Bean
+    fun passwordEncoder(): BCryptPasswordEncoder = BCryptPasswordEncoder()
+
+    @Bean
     fun securityWebFilterChain(
         http: ServerHttpSecurity,
         jwtAuthFilter: JwtAuthFilter,
@@ -41,6 +45,7 @@ class SecurityConfig {
             .authorizeExchange { exchanges ->
                 exchanges
                     // Public, unauthenticated endpoints
+                    .pathMatchers("/api/v1/auth/**").permitAll()
                     .pathMatchers(HttpMethod.GET, "/api/v1/properties/search").permitAll()
                     .pathMatchers(HttpMethod.GET, "/api/v1/properties/geocode").permitAll()
                     .pathMatchers(HttpMethod.GET, "/api/v1/properties/**").permitAll()

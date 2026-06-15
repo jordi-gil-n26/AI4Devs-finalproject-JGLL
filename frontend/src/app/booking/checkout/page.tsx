@@ -61,6 +61,14 @@ export default function CheckoutPage() {
       setPageError('Missing booking parameters. Please go back and try again.');
       return;
     }
+
+    // Auth guard: redirect to login if no JWT is present
+    if (!localStorage.getItem('auth_token')) {
+      const redirectUrl = `/booking/checkout?${searchParams.toString()}`;
+      router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+      return;
+    }
+
     hasCreatedRef.current = true;
 
     createBooking.mutate(
