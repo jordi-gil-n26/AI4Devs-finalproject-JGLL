@@ -148,6 +148,9 @@ describe('CheckoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Set a mock auth token so the checkout auth guard does not redirect.
+    localStorage.setItem('auth_token', 'test-jwt-token');
+
     // Default: property loaded, booking pending
     (usePropertyDetails as ReturnType<typeof vi.fn>).mockReturnValue({
       data: mockProperty,

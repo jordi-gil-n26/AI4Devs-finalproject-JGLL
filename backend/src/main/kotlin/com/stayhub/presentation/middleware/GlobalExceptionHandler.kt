@@ -98,6 +98,7 @@ class GlobalExceptionHandler {
         ErrorCode.PAYMENT_FAILED -> HttpStatus.BAD_REQUEST
         ErrorCode.HOLD_EXPIRED -> HttpStatus.CONFLICT
         ErrorCode.BOOKING_CANNOT_CANCEL -> HttpStatus.UNPROCESSABLE_ENTITY
+        ErrorCode.CONFLICT -> HttpStatus.CONFLICT
         ErrorCode.INTERNAL_ERROR -> HttpStatus.INTERNAL_SERVER_ERROR
     }
 }

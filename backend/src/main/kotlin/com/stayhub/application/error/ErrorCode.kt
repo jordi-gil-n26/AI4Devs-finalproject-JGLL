@@ -16,5 +16,6 @@ enum class ErrorCode {
     PAYMENT_FAILED,
     HOLD_EXPIRED,
     BOOKING_CANNOT_CANCEL,
+    CONFLICT,
     INTERNAL_ERROR,
 }

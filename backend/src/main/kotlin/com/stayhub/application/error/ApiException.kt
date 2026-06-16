@@ -36,3 +36,6 @@ class HoldExpiredException(message: String = "Availability hold expired before p
 
 class BookingCannotCancelException(message: String) :
     ApiException(ErrorCode.BOOKING_CANNOT_CANCEL, message)
+
+class ConflictException(message: String) :
+    ApiException(ErrorCode.CONFLICT, message)
