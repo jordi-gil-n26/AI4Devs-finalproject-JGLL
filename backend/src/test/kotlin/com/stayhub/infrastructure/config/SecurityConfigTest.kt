@@ -21,7 +21,7 @@ import javax.crypto.SecretKey
  *  - a valid bearer token grants access to protected endpoints
  */
 @WebFluxTest(controllers = [SecurityConfigTest.TestController::class])
-@Import(SecurityConfig::class, JwtAuthFilter::class)
+@Import(SecurityConfig::class, JwtAuthFilter::class, CorsConfig::class)
 @TestPropertySource(
     properties = [
         "stayhub.jwt.secret=test-secret-test-secret-test-secret-test-secret-0123456789",
