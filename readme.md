@@ -90,20 +90,38 @@ cd AI4Devs-finalproject-JGLL
 
 #### 2. Configure environment variables
 
-Create `backend/.env`:
+Create `backend/.env`. The file is loaded automatically by Spring via
+`spring.config.import=optional:file:./.env[.properties]`, so it must use
+plain Java properties syntax: `KEY=VALUE` lines only — no `export`, no
+quoted values, no shell interpolation.
 
 ```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=stayhub
-DB_USER=stayhub
-DB_PASSWORD=stayhub_dev
-STRIPE_SECRET_KEY=sk_test_...
-STRIPE_WEBHOOK_SECRET=whsec_...
-MAPBOX_ACCESS_TOKEN=pk.test_...
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_DB=stayhub
+POSTGRES_USER=stayhub
+POSTGRES_PASSWORD=stayhub_dev
+
+STRIPE_API_KEY=sk_test_dummy
+STRIPE_WEBHOOK_SECRET=whsec_test_dummy
+
+MAPBOX_API_KEY=pk_test_...
+
 MAIL_HOST=localhost
 MAIL_PORT=1025
+MAIL_FROM=noreply@stayhub.local
+
+# 32+ character secret. Generate with: openssl rand -base64 48
+JWT_SECRET=replace_me_with_a_32_plus_character_local_dev_secret
+JWT_ISSUER=stayhub
 ```
+
+The Spring context refuses to start if `JWT_SECRET` is unset or shorter
+than 32 characters — boot fails fast with a clear binding error rather
+than 500-ing on the first `/api/v1/auth/*` request.
+
+See `specs/001-guest-search-booking/quickstart.md` for the full
+developer setup walkthrough.
 
 Create `frontend/.env.local`:
 
