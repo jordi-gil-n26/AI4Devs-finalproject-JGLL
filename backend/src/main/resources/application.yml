@@ -2,6 +2,16 @@ spring:
   application:
     name: stayhub
 
+  # Optionally import key=value lines from backend/.env so the documented
+  # quickstart (create backend/.env, run ./gradlew bootRun) works without
+  # any manual `set -a` dance. The [.properties] hint forces Spring to
+  # parse the file as plain Java properties — so `.env` must stay plain
+  # KEY=VALUE: no `export`, no quoted values, no shell interpolation.
+  # `optional:` keeps the context starting in CI / prod where envs are
+  # injected directly and no .env file exists.
+  config:
+    import: optional:file:./.env[.properties]
+
   # Reactive datasource used by the application at runtime.
   # Defaults match docker-compose.yml so a fresh checkout works without env setup.
   r2dbc:

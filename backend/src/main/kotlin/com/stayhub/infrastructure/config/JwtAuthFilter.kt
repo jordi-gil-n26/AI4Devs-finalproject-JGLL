@@ -52,18 +52,15 @@ class JwtAuthFilter(
             )
     }
 
-    private fun parseClaims(token: String): Claims? {
-        if (jwtProperties.secret.isBlank()) return null
-        return runCatching {
-            val key: SecretKey = Keys.hmacShaKeyFor(jwtProperties.secret.toByteArray())
-            Jwts.parser()
-                .verifyWith(key)
-                .requireIssuer(jwtProperties.issuer)
-                .build()
-                .parseSignedClaims(token)
-                .payload
-        }.getOrNull()
-    }
+    private fun parseClaims(token: String): Claims? = runCatching {
+        val key: SecretKey = Keys.hmacShaKeyFor(jwtProperties.secret.toByteArray())
+        Jwts.parser()
+            .verifyWith(key)
+            .requireIssuer(jwtProperties.issuer)
+            .build()
+            .parseSignedClaims(token)
+            .payload
+    }.getOrNull()
 
     @Suppress("UNCHECKED_CAST")
     private fun extractRoles(claims: Claims): List<String> =

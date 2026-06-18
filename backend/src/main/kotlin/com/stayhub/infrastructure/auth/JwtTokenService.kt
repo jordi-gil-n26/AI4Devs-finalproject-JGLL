@@ -12,7 +12,10 @@ import java.util.UUID
  * Issues 30-day signed JWTs using the same secret and issuer as [JwtAuthFilter].
  *
  * Algorithm: HMAC-SHA256 via [Keys.hmacShaKeyFor].
- * The secret is read from [JwtProperties.secret] — never hardcoded.
+ *
+ * [JwtProperties] guarantees the secret is non-blank and ≥ 32 characters
+ * (validated at context refresh), so this issuer can hash it directly
+ * without re-checking length.
  */
 @Service
 class JwtTokenService(
