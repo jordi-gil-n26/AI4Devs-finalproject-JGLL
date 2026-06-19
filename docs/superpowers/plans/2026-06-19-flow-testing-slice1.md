@@ -1,28 +1,29 @@
-# Flow Testing — Slice 1 Implementation Plan
+# Flow Testing — Slice 1 Implementation Plan (per-endpoint)
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Establish the backend flow-test pattern — a shared `AbstractFlowTest` harness plus the canonical booking-journey flow test (register → create booking → confirm) that exercises the real Spring context, HTTP codecs, security chain, and database.
+**Goal:** Establish the backend **per-endpoint integration-test** pattern — a shared `AbstractApiIntegrationTest` harness plus per-endpoint integration tests for the **booking endpoints** (`POST /bookings`, `POST /bookings/{id}/confirm`), covering the happy path and key error paths through the real Spring context, HTTP codecs, security chain, and database.
 
-**Architecture:** Full-context `@SpringBootTest(RANDOM_PORT)` with a `WebTestClient` bound to the real server (`bindToServer` + `@LocalServerPort`) so requests cross a real socket through the real WebFlux filter chain and Jackson codecs. Postgres/PostGIS comes from the existing Testcontainers singleton (`TestContainersConfiguration`). Payments use the wired `StubPaymentAdapter` (auto-succeeds), so the journey reaches a confirmed booking without external Stripe. Tests live in a new `com.stayhub.flow` package.
+**Architecture:** Full-context `@SpringBootTest(RANDOM_PORT)` with a `WebTestClient` bound to the real server (`bindToServer` + `@LocalServerPort`) so requests cross a real socket through the real WebFlux filter chain and Jackson codecs. Postgres/PostGIS from the existing Testcontainers singleton. Payments via the wired `StubPaymentAdapter` (auto-succeeds; unknown intent → FAILED). Each test targets **one endpoint + one behavior** — these are endpoint-contract tests, **not** chained journeys (the whole journey is Playwright's job, Slice 3). A test may create a booking as *setup* for a confirm test; that is setup, not a journey assertion.
 
-**Tech Stack:** Kotlin, Spring WebFlux, JUnit 5, Spring `WebTestClient`, Testcontainers (Postgres/PostGIS), Flyway, Gradle.
+**Tech Stack:** Kotlin, Spring WebFlux, JUnit 5, `WebTestClient`, Testcontainers (Postgres/PostGIS), Flyway, Gradle, AssertJ.
 
-**Scope:** This is **Slice 1 of 4** from the design spec (`docs/superpowers/specs/2026-06-19-e2e-flow-testing-strategy-design.md`). Slices 2 (remaining backend flow tests), 3 (Playwright browser E2E + Dockerfiles + compose + CI job), and 4 (skills/process/CI enforcement) each get their own plan after Slice 1 lands.
+**Scope:** Slice 1 of 4 (`docs/superpowers/specs/2026-06-19-e2e-flow-testing-strategy-design.md`). Slice 2 = per-endpoint tests for the other controllers; Slice 3 = Playwright whole-journey + Dockerfiles + compose + CI; Slice 4 = enforcement.
 
-**Branch/PR:** Per project workflow, implement on a feature branch in an isolated worktree (`git worktree add .worktrees/issue-<n>-flow-slice1 -b issue-<n>-flow-slice1`) and open one PR. Create a tracking GitHub issue first (referenced as `#<n>` below).
+**Repurpose note:** This supersedes the earlier "backend journey test" approach. PR #138 currently contains `com/stayhub/flow/AbstractFlowTest.kt` + `com/stayhub/flow/BookingJourneyFlowTest.kt`; this plan moves the base into the existing `presentation/api/integration/` package (renamed `AbstractApiIntegrationTest`), replaces the chained journey test with per-endpoint booking tests, and deletes the `com/stayhub/flow/` package.
 
 ---
 
-### Task 1: Shared flow-test base class
+### Task 1: Shared per-endpoint integration base
 
 **Files:**
-- Create: `backend/src/test/kotlin/com/stayhub/flow/AbstractFlowTest.kt`
+- Create: `backend/src/test/kotlin/com/stayhub/presentation/api/integration/AbstractApiIntegrationTest.kt`
+- Delete: `backend/src/test/kotlin/com/stayhub/flow/AbstractFlowTest.kt`
 
-- [ ] **Step 1: Write the base class**
+- [ ] **Step 1: Create the base** (same mechanics as the prior `AbstractFlowTest`, renamed and relocated next to the existing integration tests)
 
 ```kotlin
-package com.stayhub.flow
+package com.stayhub.presentation.api.integration
 
 import com.stayhub.infrastructure.config.TestContainersConfiguration
 import org.junit.jupiter.api.BeforeEach
@@ -36,13 +37,11 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Duration
 
 /**
- * Base class for backend flow tests — multi-step user journeys exercised
- * against the full Spring context over real HTTP.
- *
- * Binds a [WebTestClient] to the actually-running server (`bindToServer` +
- * [LocalServerPort]) so requests cross a real socket through the real WebFlux
- * filter chain, Jackson codecs, and security — the layer that catches
- * wiring/codec/CORS bugs that mocked slice tests cannot (see issues #130, #132).
+ * Base for per-endpoint API integration tests — each test verifies one endpoint
+ * against the full Spring context over real HTTP (`bindToServer` +
+ * [LocalServerPort]), so requests cross a real socket through the real WebFlux
+ * filter chain, Jackson codecs, and security. This is the layer that catches
+ * the wiring/codec/CORS bugs mocked slice tests miss (issues #130, #132).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -54,7 +53,7 @@ import java.time.Duration
         "stayhub.jwt.issuer=stayhub",
     ]
 )
-abstract class AbstractFlowTest {
+abstract class AbstractApiIntegrationTest {
 
     @LocalServerPort
     private var port: Int = 0
@@ -69,20 +68,16 @@ abstract class AbstractFlowTest {
             .build()
     }
 
-    /**
-     * Registers a brand-new guest and returns the issued JWT. Email is
-     * uniquified per call so journeys don't collide on the unique-email
-     * constraint within the shared Testcontainers database.
-     */
+    /** Registers a brand-new guest (unique email) and returns the issued JWT. */
     protected fun registerGuest(
-        email: String = "flow-${System.nanoTime()}@example.com",
+        email: String = "it-${System.nanoTime()}@example.com",
         password: String = "pass1234",
     ): String =
         http.post()
             .uri("/api/v1/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(
-                """{"email":"$email","password":"$password","first_name":"Flow","last_name":"Test"}"""
+                """{"email":"$email","password":"$password","first_name":"Itest","last_name":"User"}"""
             )
             .exchange()
             .expectStatus().isCreated
@@ -93,89 +88,163 @@ abstract class AbstractFlowTest {
 }
 ```
 
-- [ ] **Step 2: Verify it compiles**
-
-Run: `cd backend && ./gradlew compileTestKotlin`
-Expected: `BUILD SUCCESSFUL` (an abstract class with no `@Test` methods is not executed).
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 2: Remove the old flow base**
 
 ```bash
-git add backend/src/test/kotlin/com/stayhub/flow/AbstractFlowTest.kt
-git commit -m "test(flow): add AbstractFlowTest harness for full-context journey tests (#<n>)"
+git rm backend/src/test/kotlin/com/stayhub/flow/AbstractFlowTest.kt
+```
+
+- [ ] **Step 3: Verify compile**
+
+Run: `cd backend && ./gradlew compileTestKotlin`
+Expected: `BUILD SUCCESSFUL`.
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add -A
+git commit -m "test(it): add AbstractApiIntegrationTest base in integration package (#137)"
 ```
 
 ---
 
-### Task 2: Booking-journey flow test (register → create → confirm)
+### Task 2: Per-endpoint booking integration tests
 
 **Files:**
-- Create: `backend/src/test/kotlin/com/stayhub/flow/BookingJourneyFlowTest.kt`
+- Create: `backend/src/test/kotlin/com/stayhub/presentation/api/integration/BookingApiIntegrationTest.kt`
+- Delete: `backend/src/test/kotlin/com/stayhub/flow/BookingJourneyFlowTest.kt`
 
-- [ ] **Step 1: Write the flow test**
+Mechanics (verified against the controllers / `StubPaymentAdapter`):
+- Seed availability `CURRENT_DATE .. +89`; seed bookings at `+10..14, +20..23, +40..45`. A per-call offset of `50..79` (3-night stay → checkout ≤ +82) is free, in-window, and avoids cross-test 409s in the shared DB.
+- Create response: `stripe_client_secret = "pi_stub_secret_<paymentIntentId>"`; the stub stores intents `SUCCEEDED`. An **unknown** intent id → `getPaymentStatus` returns `FAILED`.
+- Error-code envelope (`$.error.code`): `DATES_UNAVAILABLE` (409), `NOT_FOUND` (404), `FORBIDDEN` (403), `PAYMENT_FAILED` (400) — per `GlobalExceptionHandler`.
 
-Notes on the mechanics this encodes:
-- Seed availability (migration `V7`) runs `CURRENT_DATE .. +89 days`; seed bookings occupy `+10..14`, `+20..23`, `+40..45`. `+70..+73` is free and in-window, so create returns `201`.
-- The create response's `stripe_client_secret` is `"pi_stub_secret_<paymentIntentId>"` (see `StubPaymentAdapter`); strip that prefix to get the id confirm needs. The stub stores the intent as `SUCCEEDED`, so confirm transitions the booking to `confirmed`.
-- Posting `check_in`/`check_out` as ISO strings and getting `201` (not a Jackson `CodecException`) keeps the #132 regression covered.
+- [ ] **Step 1: Write the per-endpoint tests**
 
 ```kotlin
-package com.stayhub.flow
+package com.stayhub.presentation.api.integration
 
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import java.time.LocalDate
+import java.util.UUID
 
 /**
- * End-to-end booking journey at the API layer: a guest registers, creates a
- * booking (PENDING + Stripe PaymentIntent via the stub), then confirms it.
- *
- * Runs through the real WebFlux codecs (LocalDate (de)serialization — issue
- * #132), the real security chain (JWT-protected /api/v1/bookings — issue #130),
- * and the real database (Testcontainers + Flyway seed data).
+ * Per-endpoint integration tests for the booking endpoints, exercised over the
+ * real stack (codecs — #132; JWT security — #130; DB). Each test targets one
+ * endpoint + one behavior; creating a booking inside a confirm test is setup.
  */
-class BookingJourneyFlowTest : AbstractFlowTest() {
+class BookingApiIntegrationTest : AbstractApiIntegrationTest() {
 
     // Seeded property (V7): "Cosy Eixample Apartment", Barcelona.
     private val propertyId = "cccccccc-cccc-cccc-cccc-000000001001"
 
+    /** Free, in-window dates, unique per call to avoid cross-test 409s in the shared DB. */
+    private fun freeDates(): Pair<LocalDate, LocalDate> {
+        val checkIn = LocalDate.now().plusDays(50 + (System.nanoTime() % 30))
+        return checkIn to checkIn.plusDays(3)
+    }
+
+    private fun bookingBody(checkIn: LocalDate, checkOut: LocalDate, guests: Int = 2, property: String = propertyId) =
+        """{"property_id":"$property","check_in":"$checkIn","check_out":"$checkOut","guest_count":$guests}"""
+
+    // --- POST /api/v1/bookings ------------------------------------------------
+
     @Test
-    fun `guest registers, books a property, and confirms payment`() {
+    fun `create returns 201 with booking details and ISO-date pricing`() {
         val token = registerGuest()
+        val (checkIn, checkOut) = freeDates()
 
-        // Free, in-window dates (clear of the +10..45 seed bookings).
-        val checkIn = LocalDate.now().plusDays(70)
-        val checkOut = checkIn.plusDays(3)
-
-        // 1. Create booking — PENDING + PaymentIntent. Capture the response body
-        //    as a Map (same pattern as registerGuest) to read the ids back.
-        val created = http.post()
-            .uri("/api/v1/bookings")
+        http.post().uri("/api/v1/bookings")
             .header("Authorization", "Bearer $token")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(
-                """{"property_id":"$propertyId","check_in":"$checkIn","check_out":"$checkOut","guest_count":2}"""
-            )
+            .bodyValue(bookingBody(checkIn, checkOut))
             .exchange()
             .expectStatus().isCreated
-            .expectBody(Map::class.java)
-            .returnResult()
-            .responseBody!!
+            .expectBody()
+            .jsonPath("$.booking_id").exists()
+            .jsonPath("$.reference_number").exists()
+            .jsonPath("$.stripe_client_secret").exists()
+            .jsonPath("$.hold_expires_at").exists()
+            .jsonPath("$.price_breakdown.nights").isEqualTo(3)
+    }
 
-        val bookingId = created["booking_id"] as String
-        val clientSecret = created["stripe_client_secret"] as String
-        // #132 regression: dates round-tripped and pricing computed -> 3 nights.
-        @Suppress("UNCHECKED_CAST")
-        val priceBreakdown = created["price_breakdown"] as Map<String, Any?>
-        assertThat((priceBreakdown["nights"] as Number).toInt()).isEqualTo(3)
+    @Test
+    fun `create returns 401 without a token`() {
+        val (checkIn, checkOut) = freeDates()
+        http.post().uri("/api/v1/bookings")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(bookingBody(checkIn, checkOut))
+            .exchange()
+            .expectStatus().isUnauthorized
+    }
 
-        // Stub client secret is "pi_stub_secret_<paymentIntentId>".
-        val paymentIntentId = clientSecret.removePrefix("pi_stub_secret_")
+    @Test
+    fun `create returns 400 when property_id is missing`() {
+        val token = registerGuest()
+        http.post().uri("/api/v1/bookings")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"check_in":"2030-06-01","check_out":"2030-06-05","guest_count":2}""")
+            .exchange()
+            .expectStatus().isBadRequest
+    }
 
-        // 2. Confirm booking after the (stubbed, auto-succeeded) payment.
-        http.post()
-            .uri("/api/v1/bookings/$bookingId/confirm")
+    @Test
+    fun `create returns 404 when the property does not exist`() {
+        val token = registerGuest()
+        val (checkIn, checkOut) = freeDates()
+        http.post().uri("/api/v1/bookings")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(bookingBody(checkIn, checkOut, property = UUID.randomUUID().toString()))
+            .exchange()
+            .expectStatus().isNotFound
+            .expectBody().jsonPath("$.error.code").isEqualTo("NOT_FOUND")
+    }
+
+    @Test
+    fun `create returns 409 when the dates are already held`() {
+        val (checkIn, checkOut) = freeDates()
+        // First booking holds the dates.
+        http.post().uri("/api/v1/bookings")
+            .header("Authorization", "Bearer ${registerGuest()}")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(bookingBody(checkIn, checkOut))
+            .exchange()
+            .expectStatus().isCreated
+        // Second booking for the same property + dates conflicts.
+        http.post().uri("/api/v1/bookings")
+            .header("Authorization", "Bearer ${registerGuest()}")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(bookingBody(checkIn, checkOut))
+            .exchange()
+            .expectStatus().isEqualTo(409)
+            .expectBody().jsonPath("$.error.code").isEqualTo("DATES_UNAVAILABLE")
+    }
+
+    // --- POST /api/v1/bookings/{id}/confirm -----------------------------------
+
+    /** Creates a booking and returns (bookingId, paymentIntentId). Setup for confirm tests. */
+    private fun createBooking(token: String): Pair<String, String> {
+        val (checkIn, checkOut) = freeDates()
+        val body = http.post().uri("/api/v1/bookings")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(bookingBody(checkIn, checkOut))
+            .exchange()
+            .expectStatus().isCreated
+            .expectBody(Map::class.java).returnResult().responseBody!!
+        val bookingId = body["booking_id"] as String
+        val paymentIntentId = (body["stripe_client_secret"] as String).removePrefix("pi_stub_secret_")
+        return bookingId to paymentIntentId
+    }
+
+    @Test
+    fun `confirm returns 200 and marks the booking confirmed`() {
+        val token = registerGuest()
+        val (bookingId, paymentIntentId) = createBooking(token)
+        http.post().uri("/api/v1/bookings/$bookingId/confirm")
             .header("Authorization", "Bearer $token")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue("""{"payment_intent_id":"$paymentIntentId"}""")
@@ -184,79 +253,90 @@ class BookingJourneyFlowTest : AbstractFlowTest() {
             .expectBody()
             .jsonPath("$.id").isEqualTo(bookingId)
             .jsonPath("$.status").isEqualTo("confirmed")
-            .jsonPath("$.guest_count").isEqualTo(2)
+    }
+
+    @Test
+    fun `confirm returns 403 when the booking belongs to another guest`() {
+        val (bookingId, paymentIntentId) = createBooking(registerGuest())
+        http.post().uri("/api/v1/bookings/$bookingId/confirm")
+            .header("Authorization", "Bearer ${registerGuest()}")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"payment_intent_id":"$paymentIntentId"}""")
+            .exchange()
+            .expectStatus().isForbidden
+            .expectBody().jsonPath("$.error.code").isEqualTo("FORBIDDEN")
+    }
+
+    @Test
+    fun `confirm returns 400 when the payment did not succeed`() {
+        val token = registerGuest()
+        val (bookingId, _) = createBooking(token)
+        // Unknown intent id -> stub reports FAILED.
+        http.post().uri("/api/v1/bookings/$bookingId/confirm")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"payment_intent_id":"pi_stub_unknown_not_succeeded"}""")
+            .exchange()
+            .expectStatus().isBadRequest
+            .expectBody().jsonPath("$.error.code").isEqualTo("PAYMENT_FAILED")
     }
 }
 ```
 
-- [ ] **Step 2: Run the flow test, expect PASS**
-
-Run: `cd backend && ./gradlew test --tests "com.stayhub.flow.BookingJourneyFlowTest" --rerun-tasks`
-Expected: `BUILD SUCCESSFUL`, 1 test passing. (The endpoints already work on `main`; this test proves the journey end-to-end. If it FAILS, stop — that is a real regression to investigate, not a test to weaken.)
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 2: Remove the old journey test**
 
 ```bash
-git add backend/src/test/kotlin/com/stayhub/flow/BookingJourneyFlowTest.kt
-git commit -m "test(flow): booking journey create->confirm over real stack (#<n>)"
+git rm backend/src/test/kotlin/com/stayhub/flow/BookingJourneyFlowTest.kt
 ```
 
----
+- [ ] **Step 3: Run the booking integration tests, expect PASS**
 
-### Task 3: Fold in the redundant create-only integration test
+Run: `cd backend && ./gradlew test --tests "com.stayhub.presentation.api.integration.BookingApiIntegrationTest" --rerun-tasks`
+Expected: `BUILD SUCCESSFUL`, 8 tests passing.
 
-The booking-journey flow test subsumes `BookingIntegrationTest` (create-only, added in #133) — including its #132 LocalDate regression coverage (it still posts ISO dates and asserts `201` + `nights`). Remove the duplicate so there is one canonical booking flow test.
+**If an error-path test does not produce the asserted status/code** (the confirm-ownership-vs-payment order and the validation/404 codes are the least certain): read `ConfirmBookingUseCase`, `CreateBookingUseCase`, and `GlobalExceptionHandler` to confirm the real contract. Adjust the **setup** to reach the intended precondition if needed, but do **not** weaken a contract assertion to make a test pass — if the real status/code differs from the spec, report it as a finding (it may be a real bug).
 
-**Files:**
-- Delete: `backend/src/test/kotlin/com/stayhub/presentation/api/integration/BookingIntegrationTest.kt`
-
-- [ ] **Step 1: Delete the redundant test**
-
-```bash
-git rm backend/src/test/kotlin/com/stayhub/presentation/api/integration/BookingIntegrationTest.kt
-```
-
-- [ ] **Step 2: Run the full suite, expect PASS**
-
-Run: `cd backend && ./gradlew test --rerun-tasks`
-Expected: `BUILD SUCCESSFUL`, 0 failures. (Net test count: prior total − 2 BookingIntegrationTest cases + 1 BookingJourneyFlowTest case.)
-
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
 git add -A
-git commit -m "test(flow): fold create-only BookingIntegrationTest into BookingJourneyFlowTest (#<n>)"
+git commit -m "test(it): per-endpoint booking integration tests (create/confirm, happy + errors) (#137)"
 ```
 
 ---
 
-### Task 4: Push and open the PR
+### Task 3: Verify full suite & confirm the flow package is gone
 
-- [ ] **Step 1: Push the branch**
+- [ ] **Step 1: Confirm no `com/stayhub/flow` files remain**
 
-Run: `git push -u origin issue-<n>-flow-slice1`
+Run: `ls backend/src/test/kotlin/com/stayhub/flow 2>/dev/null || echo "flow package removed"`
+Expected: `flow package removed` (both files deleted in Tasks 1–2).
 
-- [ ] **Step 2: Open the PR using the repo template**
+- [ ] **Step 2: Run the full suite**
 
-Use `.github/pull_request_template.md` as the literal scaffold. Fill in:
-- **What:** `AbstractFlowTest` harness + `BookingJourneyFlowTest` (register→create→confirm over the real stack); removed the redundant create-only `BookingIntegrationTest`.
-- **Why:** Slice 1 of the flow-testing strategy (`docs/superpowers/specs/2026-06-19-e2e-flow-testing-strategy-design.md`); closes the flow-coverage gap behind #130/#132; absorbs the Layer-A portion of epic #134.
-- **Impact:** Test-only; no production change; runs in the existing Backend (Gradle) CI gate, no new infra.
-- **References:** issue `#<n>`, design spec, epic #134.
-- Tick only genuinely-satisfied checklist items.
+Run: `cd backend && ./gradlew test --rerun-tasks`
+Expected: `BUILD SUCCESSFUL`, 0 failures.
 
-- [ ] **Step 3: Report** the PR URL and the test count delta. Do not close the tracking issue (leave that to the human).
+- [ ] **Step 3: Commit (only if anything was outstanding)** — otherwise skip.
 
 ---
 
-## Roadmap (future plans — not part of this plan)
+### Task 4: Push and open/refresh the PR
 
-- **Slice 2 — breadth:** flow tests for auth, search, property-detail, booking error paths (409/404/401/validation), Stripe webhook; migrate `AuthIntegrationTest` + `CorsPreflightIntegrationTest` onto `AbstractFlowTest` and strengthen the weak `!= 401` assertion. Close epic #134.
-- **Slice 3 — browser E2E:** `backend/Dockerfile` + `frontend/Dockerfile`, `docker-compose.e2e.yml`, Playwright harness + the single booking-journey browser spec (results-list navigation, stub-payment checkout), new non-blocking CI job.
-- **Slice 4 — enforcement:** flow-coverage rules + slice-test pitfall note in `backend-kotlin-spring` and `frontend-nextjs-react` skills; `implement-issue` definition-of-done item; PR-template checkbox; promote the Layer-B CI job to a required check once stable.
+- [ ] **Step 1: Push** `git push` (branch `issue-137-flow-slice1` already exists / PR #138 open).
+- [ ] **Step 2: Update the PR #138 description** to reflect per-endpoint booking integration tests (not a journey test): list the 8 endpoint behaviors covered; note it replaces the create-only `BookingIntegrationTest` and the interim journey test; references issue #137, spec, epic #134.
+- [ ] **Step 3: Report** the test count and PR URL. Do not close the issue.
+
+---
+
+## Roadmap (future plans)
+
+- **Slice 2:** per-endpoint integration tests for search, geocode, property (details/availability/reviews/price), auth (register/login), webhook; migrate `AuthIntegrationTest` + `CorsPreflightIntegrationTest` onto `AbstractApiIntegrationTest`; strengthen the weak `!= 401` assertion; close #134.
+- **Slice 3:** `backend/Dockerfile` + `frontend/Dockerfile`, `docker-compose.e2e.yml`, Playwright harness + the single whole-journey browser spec, non-blocking CI job.
+- **Slice 4:** skills + `implement-issue` DoD + PR-template enforcement; promote the Layer-B CI job to required once stable.
 
 ## Self-review
 
-- **Spec coverage (Slice 1 scope):** `AbstractFlowTest` harness ✓ (Task 1); booking-journey flow test over real context/codecs/security/DB ✓ (Task 2); fold in existing `BookingIntegrationTest` ✓ (Task 3); runs in existing Backend gate, no new infra ✓. Slices 2–4 explicitly deferred to their own plans ✓.
-- **Placeholder scan:** no TBD/TODO; every code step shows complete code; `#<n>` is the tracking-issue number filled at execution start (documented in Branch/PR), not a content placeholder.
-- **Type/identifier consistency:** `AbstractFlowTest` exposes `http: WebTestClient` and `registerGuest(): String`; `BookingJourneyFlowTest` uses exactly those. Endpoint paths (`/api/v1/auth/register`, `/api/v1/bookings`, `/api/v1/bookings/{id}/confirm`), the `stripe_client_secret` → `pi_stub_secret_` derivation, and response fields (`booking_id`, `price_breakdown.nights`, `status`) match the controllers and `StubPaymentAdapter` verified in the codebase.
+- **Spec coverage:** per-endpoint base ✓ (Task 1); booking endpoint behaviors — create 201/401/400/404/409, confirm 200/403/400 ✓ (Task 2); old journey/flow artifacts removed ✓ (Tasks 1–3); runs in existing Backend gate ✓.
+- **Placeholder scan:** all code complete; `#137` is the tracking issue (real), not a placeholder. The two least-certain error paths carry an explicit verify-don't-weaken instruction rather than a guessed assertion left as TODO.
+- **Identifier consistency:** base exposes `http: WebTestClient` + `registerGuest(): String`; `BookingApiIntegrationTest` uses exactly those, plus local helpers `freeDates()`, `bookingBody(...)`, `createBooking(...)`. Endpoint paths, the `pi_stub_secret_` derivation, and error codes match the controllers / stub / `GlobalExceptionHandler`.

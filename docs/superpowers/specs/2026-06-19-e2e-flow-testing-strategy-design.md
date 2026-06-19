@@ -37,30 +37,33 @@ The lesson: **no test exercised a real user journey through the real stack.** Th
 
 | Decision | Choice |
 |---|---|
-| Test layers | **Both**: backend flow tests (broad) + thin browser E2E |
+| Test layers | **Both**: per-endpoint backend integration tests (broad) + a thin browser E2E that owns the whole journey |
+| Backend layer granularity | **Per endpoint** — each endpoint verified through the real stack (happy path + key error paths). NOT chained multi-endpoint journeys (the journey is Playwright's job). |
 | Browser-E2E scope | **Core booking journey only**: register/login → search → property → checkout → confirmation |
 | Enforcement | **Docs + CI gate** |
 | Browser-E2E CI orchestration | **(a) docker-compose the whole stack** — includes writing the (currently missing) backend + frontend Dockerfiles |
 
-## Layer A — Backend flow tests (the workhorse)
+## Layer A — Per-endpoint backend integration tests (the workhorse)
 
-Multi-step user journeys against the **full Spring context** + Testcontainers, via `WebTestClient` bound to a real server (`@SpringBootTest(RANDOM_PORT)` + `bindToServer` / `@LocalServerPort`).
+Each **endpoint** verified against the **full Spring context** + Testcontainers, via `WebTestClient` bound to a real server (`@SpringBootTest(RANDOM_PORT)` + `bindToServer` / `@LocalServerPort`). These are endpoint-contract tests (status, body, codecs, security) — **not** chained multi-endpoint journeys. Cross-endpoint journey coverage lives in Layer B (Playwright) only, so the journey is not tested twice.
 
-- **Location:** `backend/src/test/kotlin/com/stayhub/flow/`
-- **Shared base:** `AbstractFlowTest` — Testcontainers Postgres/PostGIS singleton (reuse existing `TestContainersConfiguration`), standard `@TestPropertySource` (flyway, jwt), and helpers (`registerGuest()`, `token()`, JSON builders).
-- **Journeys (one test class each):**
-  - Auth: register → login → token grants access to a protected endpoint.
-  - Search: bbox + dates (+ filters) → results; geocode.
-  - Property detail: details + availability + reviews + price calculation.
-  - Booking happy path: create (201, hold + client secret) → confirm → appears in my-trips. *(create already added in #133 as `BookingIntegrationTest`; fold in here.)*
-  - Booking error paths: 409 dates-unavailable, 404 missing property, 401 unauthenticated, 400 validation.
-  - Stripe webhook: signature-verified event confirms a booking.
+A test may perform minimal **setup** through another endpoint when a precondition demands it (e.g. confirming a booking requires first creating one) — that is setup, not a journey assertion.
+
+- **Location:** `backend/src/test/kotlin/com/stayhub/presentation/api/integration/` (alongside the existing `AuthIntegrationTest`, `CorsPreflightIntegrationTest`).
+- **Shared base:** `AbstractApiIntegrationTest` — `@SpringBootTest(RANDOM_PORT)` + `bindToServer` + `@LocalServerPort`, Testcontainers Postgres/PostGIS singleton (reuse `TestContainersConfiguration`), standard `@TestPropertySource` (flyway, jwt), and a `registerGuest()` helper.
+- **Per-endpoint coverage (one test class per controller; one test per status/behavior):**
+  - `POST /api/v1/bookings` — 201 (incl. the #132 LocalDate + price assertions), 409 dates-unavailable, 404 missing property, 401 unauthenticated, 400 validation.
+  - `POST /api/v1/bookings/{id}/confirm` — 200 confirmed, 403 wrong guest, 400 payment-failed.
+  - `GET /api/v1/properties/search` + `/geocode` — 200 with results; CORS preflight already covered by `CorsPreflightIntegrationTest`.
+  - `GET /api/v1/properties/{id}` + availability + reviews + price calculation.
+  - `POST /api/v1/auth/register` + `/login` — 201/200, 409 duplicate, 401 bad credentials (migrate/​strengthen the existing `AuthIntegrationTest`, incl. its weak `!= 401` assertion).
+  - Stripe webhook — signature-verified event handling.
 - **Why this catches the bugs:** real codecs (→ would catch #132), real security chain incl. CORS preflight (→ would catch #130), real DB.
-- **CI:** **no new infra** — these are plain Gradle tests in the existing required **Backend (Gradle)** job (which already runs Testcontainers).
+- **CI:** **no new infra** — plain Gradle tests in the existing required **Backend (Gradle)** job (which already runs Testcontainers).
 
-## Layer B — Browser E2E (thin, critical-path)
+## Layer B — Browser E2E (thin, owns the journey)
 
-Playwright driving the real Next.js UI against the real backend + DB.
+Playwright driving the real Next.js UI against the real backend + DB. **This layer — and only this layer — exercises the end-to-end cross-endpoint journey** (Layer A stays per-endpoint).
 
 - **Location:** `frontend/tests/e2e/` + `@playwright/test` dev dependency + `test:e2e` script.
 - **The one journey:** register/login → search → open a property → checkout → confirmation, asserting real rendered content at each step.
@@ -75,12 +78,12 @@ Playwright driving the real Next.js UI against the real backend + DB.
 
 ## Relationship to issue #134
 
-Issue #134 (API integration-test layer) is **absorbed into Layer A** — Layer A is the matured form of it. #134 will be closed/relabelled as part of the implementation plan so there is one coherent flow-testing effort, not two competing ones.
+Issue #134 (API integration-test layer) **is exactly Layer A** in this design (per-endpoint integration tests). It is absorbed here; close/relabel it as part of the implementation so there is one coherent effort.
 
 ## Enforcement (docs + CI)
 
 **Skills**
-- `backend-kotlin-spring`: add a "Flow coverage required" rule — *a new/changed endpoint requires a Layer-A flow test in `com/stayhub/flow/`*. Add a pitfall note: *`@WebFluxTest` / `bindToController` slices with mocked use cases do not exercise the real context/codecs/security and cannot catch wiring bugs (see #130, #132) — a full-context flow test is mandatory.*
+- `backend-kotlin-spring`: add an "Integration coverage required" rule — *a new/changed endpoint requires a per-endpoint integration test in `presentation/api/integration/` (full context, `bindToServer`).* Add a pitfall note: *`@WebFluxTest` / `bindToController` slices with mocked use cases do not exercise the real context/codecs/security and cannot catch wiring bugs (see #130, #132) — a full-context integration test is mandatory.*
 - `frontend-nextjs-react`: add a rule — *a new/changed user journey requires extending the Playwright E2E; Vitest-with-mocked-hooks is not sufficient for journey coverage.*
 
 **Process**
@@ -93,9 +96,9 @@ Issue #134 (API integration-test layer) is **absorbed into Layer A** — Layer A
 
 ## Rollout (slices — each its own issue + PR)
 
-1. **Slice 1 — pattern:** `AbstractFlowTest` + the booking-journey backend flow test (fold in the existing `BookingIntegrationTest`). Proves the Layer-A pattern.
-2. **Slice 2 — breadth:** remaining backend flow tests (auth, search, property, booking errors, webhook). Strengthen the weak `!= 401` assertion in `AuthIntegrationTest`.
-3. **Slice 3 — browser E2E + containers:** backend + frontend Dockerfiles, `docker-compose.e2e.yml`, Playwright harness + the one journey, the new CI job (non-blocking).
+1. **Slice 1 — pattern + booking endpoints:** `AbstractApiIntegrationTest` base + per-endpoint integration tests for the booking endpoints (`POST /bookings` 201/409/404/401/400; `POST /bookings/{id}/confirm` 200/403/400). Proves the Layer-A pattern on the endpoints that actually broke (#132). Replaces the create-only `BookingIntegrationTest`.
+2. **Slice 2 — breadth:** per-endpoint integration tests for the remaining endpoints (search, geocode, property details/availability/reviews/price, auth register/login, webhook); migrate `AuthIntegrationTest` + `CorsPreflightIntegrationTest` onto the base and strengthen the weak `!= 401` assertion. Close #134.
+3. **Slice 3 — browser E2E + containers:** backend + frontend Dockerfiles, `docker-compose.e2e.yml`, Playwright harness + the one whole-journey spec, the new CI job (non-blocking).
 4. **Slice 4 — enforcement:** skills edits, `implement-issue` DoD item, PR-template checkbox; promote the Layer-B job to required once green-stable.
 
 ## Risks & mitigations
