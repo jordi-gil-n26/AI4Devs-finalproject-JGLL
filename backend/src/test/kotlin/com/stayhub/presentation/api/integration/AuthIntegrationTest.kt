@@ -1,150 +1,73 @@
 package com.stayhub.presentation.api.integration
 
-import com.stayhub.infrastructure.config.TestContainersConfiguration
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.web.reactive.AutoConfigureWebTestClient
-import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
-import org.springframework.r2dbc.core.DatabaseClient
-import org.springframework.test.context.ActiveProfiles
-import org.springframework.test.context.TestPropertySource
-import org.springframework.test.web.reactive.server.WebTestClient
 
 /**
- * Full-stack integration test for auth routes.
- *
- * Uses real PostgreSQL (TestContainers + Flyway migrations) and a full Spring
- * context. Verifies the register → login round-trip and that the issued JWT
- * grants access to a protected endpoint.
+ * Auth endpoints over the real stack (migrated onto AbstractApiIntegrationTest).
+ * The round-trip test asserts the issued token genuinely grants access — a real
+ * 201 booking — replacing the earlier weak `!= 401` check.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@AutoConfigureWebTestClient
-@ActiveProfiles("test")
-@Import(TestContainersConfiguration::class)
-@TestPropertySource(
-    properties = [
-        "spring.flyway.enabled=true",
-        // Provide a known JWT secret so tokens are verifiable within the test.
-        "stayhub.jwt.secret=test-secret-key-for-integration-tests-minimum-32-chars",
-        "stayhub.jwt.issuer=stayhub",
-    ]
-)
-class AuthIntegrationTest {
-
-    @Autowired
-    lateinit var webClient: WebTestClient
-
-    @Autowired
-    lateinit var databaseClient: DatabaseClient
+class AuthIntegrationTest : AbstractApiIntegrationTest() {
 
     @Test
-    fun `register - login round trip returns token and protected endpoint accepts it`() {
-        val email = "integrationtest-${System.nanoTime()}@example.com"
+    fun `register then login issues a token accepted on a protected endpoint`() {
+        val email = "auth-${System.nanoTime()}@example.com"
 
-        // Step 1: Register
-        val registerBody = webClient.post()
-            .uri("/api/v1/auth/register")
+        http.post().uri("/api/v1/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(
-                """{"email":"$email","password":"pass1234","first_name":"Integration","last_name":"Test"}"""
-            )
-            .exchange()
-            .expectStatus().isCreated
-            .expectBody()
-            .jsonPath("$.token").exists()
-            .jsonPath("$.user_id").exists()
-            .jsonPath("$.first_name").isEqualTo("Integration")
-            .returnResult()
+            .bodyValue("""{"email":"$email","password":"pass1234","first_name":"Auth","last_name":"Test"}""")
+            .exchange().expectStatus().isCreated
 
-        // Extract token from register response
-        val registerToken = webClient.post()
-            .uri("/api/v1/auth/register")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(
-                """{"email":"${email}2","password":"pass1234","first_name":"Integration2","last_name":"Test2"}"""
-            )
-            .exchange()
-            .expectStatus().isCreated
-            .expectBody(Map::class.java)
-            .returnResult()
-            .responseBody?.get("token") as? String
-
-        // Step 2: Login with same credentials
-        val loginToken = webClient.post()
-            .uri("/api/v1/auth/login")
+        val token = http.post().uri("/api/v1/auth/login")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue("""{"email":"$email","password":"pass1234"}""")
             .exchange()
             .expectStatus().isOk
-            .expectBody(Map::class.java)
-            .returnResult()
-            .responseBody?.get("token") as? String
+            .expectBody(Map::class.java).returnResult().responseBody!!["token"] as String
 
-        // Step 3: Use the login token on a protected endpoint (create booking — will fail with
-        // 400/not-found since we have no real property, but NOT 401, proving auth works)
-        webClient.post()
-            .uri("/api/v1/bookings")
+        // Token grants access to the protected booking endpoint → real 201.
+        val (checkIn, checkOut) = nextStayWindow()
+        http.post().uri("/api/v1/bookings")
+            .header("Authorization", "Bearer $token")
             .contentType(MediaType.APPLICATION_JSON)
-            .header("Authorization", "Bearer $loginToken")
-            .bodyValue(
-                """{"property_id":"cccccccc-cccc-cccc-cccc-000000001001","check_in":"2030-09-01","check_out":"2030-09-04","guest_count":2}"""
-            )
+            .bodyValue("""{"property_id":"cccccccc-cccc-cccc-cccc-000000001001","check_in":"$checkIn","check_out":"$checkOut","guest_count":2}""")
             .exchange()
-            .expectStatus().value { status ->
-                // Any non-401 response means the JWT was accepted by JwtAuthFilter
-                assert(status != 401) { "Expected JWT to be accepted but got 401" }
-            }
+            .expectStatus().isCreated
     }
 
     @Test
-    fun `duplicate email registration returns 409`() {
-        val email = "duplicate-${System.nanoTime()}@example.com"
-
-        // First registration
-        webClient.post()
-            .uri("/api/v1/auth/register")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(
-                """{"email":"$email","password":"pass1234","first_name":"Alice","last_name":"Smith"}"""
-            )
-            .exchange()
-            .expectStatus().isCreated
-
-        // Second registration with same email
-        webClient.post()
-            .uri("/api/v1/auth/register")
-            .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(
-                """{"email":"$email","password":"different","first_name":"Bob","last_name":"Jones"}"""
-            )
+    fun `register returns 409 for a duplicate email`() {
+        val email = "dup-${System.nanoTime()}@example.com"
+        http.post().uri("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"email":"$email","password":"pass1234","first_name":"A","last_name":"B"}""")
+            .exchange().expectStatus().isCreated
+        http.post().uri("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"email":"$email","password":"other","first_name":"C","last_name":"D"}""")
             .exchange()
             .expectStatus().isEqualTo(409)
-            .expectBody()
-            .jsonPath("$.error.code").isEqualTo("CONFLICT")
+            .expectBody().jsonPath("$.error.code").isEqualTo("CONFLICT")
     }
 
     @Test
-    fun `login with wrong password returns 401`() {
-        val email = "wrongpass-${System.nanoTime()}@example.com"
-
-        webClient.post()
-            .uri("/api/v1/auth/register")
+    fun `register returns 400 when a required field is blank`() {
+        http.post().uri("/api/v1/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
-            .bodyValue(
-                """{"email":"$email","password":"correct-pass","first_name":"Test","last_name":"User"}"""
-            )
+            .bodyValue("""{"email":"","password":"pass1234","first_name":"A","last_name":"B"}""")
             .exchange()
-            .expectStatus().isCreated
+            .expectStatus().isBadRequest
+    }
 
-        webClient.post()
-            .uri("/api/v1/auth/login")
-            .contentType(MediaType.APPLICATION_JSON)
+    @Test
+    fun `login returns 401 for a wrong password`() {
+        val email = "wrong-${System.nanoTime()}@example.com"
+        http.post().uri("/api/v1/auth/register").contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"email":"$email","password":"correct-pass","first_name":"T","last_name":"U"}""")
+            .exchange().expectStatus().isCreated
+        http.post().uri("/api/v1/auth/login").contentType(MediaType.APPLICATION_JSON)
             .bodyValue("""{"email":"$email","password":"wrong-pass"}""")
             .exchange()
             .expectStatus().isUnauthorized
-            .expectBody()
-            .jsonPath("$.error.code").isEqualTo("UNAUTHORIZED")
+            .expectBody().jsonPath("$.error.code").isEqualTo("UNAUTHORIZED")
     }
 }
