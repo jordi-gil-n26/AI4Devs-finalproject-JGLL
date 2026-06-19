@@ -1,4 +1,4 @@
-package com.stayhub.flow
+package com.stayhub.presentation.api.integration
 
 import com.stayhub.infrastructure.config.TestContainersConfiguration
 import org.junit.jupiter.api.BeforeEach
@@ -12,13 +12,11 @@ import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Duration
 
 /**
- * Base class for backend flow tests — multi-step user journeys exercised
- * against the full Spring context over real HTTP.
- *
- * Binds a [WebTestClient] to the actually-running server (`bindToServer` +
- * [LocalServerPort]) so requests cross a real socket through the real WebFlux
- * filter chain, Jackson codecs, and security — the layer that catches
- * wiring/codec/CORS bugs that mocked slice tests cannot (see issues #130, #132).
+ * Base for per-endpoint API integration tests — each test verifies one endpoint
+ * against the full Spring context over real HTTP (`bindToServer` +
+ * [LocalServerPort]), so requests cross a real socket through the real WebFlux
+ * filter chain, Jackson codecs, and security. This is the layer that catches
+ * the wiring/codec/CORS bugs mocked slice tests miss (issues #130, #132).
  */
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
@@ -30,7 +28,7 @@ import java.time.Duration
         "stayhub.jwt.issuer=stayhub",
     ]
 )
-abstract class AbstractFlowTest {
+abstract class AbstractApiIntegrationTest {
 
     @LocalServerPort
     private var port: Int = 0
@@ -45,20 +43,16 @@ abstract class AbstractFlowTest {
             .build()
     }
 
-    /**
-     * Registers a brand-new guest and returns the issued JWT. Email is
-     * uniquified per call so journeys don't collide on the unique-email
-     * constraint within the shared Testcontainers database.
-     */
+    /** Registers a brand-new guest (unique email) and returns the issued JWT. */
     protected fun registerGuest(
-        email: String = "flow-${System.nanoTime()}@example.com",
+        email: String = "it-${System.nanoTime()}@example.com",
         password: String = "pass1234",
     ): String =
         http.post()
             .uri("/api/v1/auth/register")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(
-                """{"email":"$email","password":"$password","first_name":"Flow","last_name":"Test"}"""
+                """{"email":"$email","password":"$password","first_name":"Itest","last_name":"User"}"""
             )
             .exchange()
             .expectStatus().isCreated
