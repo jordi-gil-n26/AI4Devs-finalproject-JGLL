@@ -23,11 +23,16 @@ class BookingApiIntegrationTest : AbstractApiIntegrationTest() {
      *
      * Each call advances a class-level [AtomicInteger] slot counter; slot N
      * maps to [+46 + 4N .. +46 + 4N + 3] (4-day stride: 3 nights + 1-day
-     * buffer).  With 10 available slots inside the +46..+87 window this covers
-     * all test calls without collisions even when tests run in parallel.
+     * buffer).  With 11 available slots (0..10) inside the +46..+89 window
+     * this covers all test calls without collisions even when tests run in
+     * parallel.
      */
     private fun freeDates(): Pair<LocalDate, LocalDate> {
         val slot = slotCounter.getAndIncrement()
+        require(slot <= 10) {
+            "freeDates() slot $slot exhausted the +46..+89 availability window " +
+                "(>11 windows in one JVM run — are tests being retried in the same process?)"
+        }
         val checkIn = LocalDate.now().plusDays(46 + slot * 4L)
         return checkIn to checkIn.plusDays(3)
     }
@@ -124,8 +129,11 @@ class BookingApiIntegrationTest : AbstractApiIntegrationTest() {
             .exchange()
             .expectStatus().isCreated
             .expectBody(Map::class.java).returnResult().responseBody!!
-        val bookingId = body["booking_id"] as String
-        val paymentIntentId = (body["stripe_client_secret"] as String).removePrefix("pi_stub_secret_")
+        val bookingId = body["booking_id"] as? String
+            ?: error("create response missing 'booking_id'; body=$body")
+        val clientSecret = body["stripe_client_secret"] as? String
+            ?: error("create response missing 'stripe_client_secret'; body=$body")
+        val paymentIntentId = clientSecret.removePrefix("pi_stub_secret_")
         return bookingId to paymentIntentId
     }
 
