@@ -1,6 +1,5 @@
 package com.stayhub.infrastructure.persistence
 
-import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertyRepository
@@ -8,7 +7,6 @@ import com.stayhub.domain.property.PropertySearchFilters
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
-import org.springframework.context.annotation.Bean
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.Pageable
@@ -194,23 +192,5 @@ class PropertyRepositoryAdapter(
             avgRating = row.get("avg_rating", BigDecimal::class.java)?.toDouble(),
             reviewCount = row.get("review_count", Int::class.java) ?: 0,
         )
-    }
-
-    companion object {
-        /**
-         * Create a secured ObjectMapper instance with protections against:
-         * - Unbounded JSON parsing (JSON bombing)
-         * - Unknown properties injection
-         * - Trailing token injection
-         */
-        @Bean
-        fun securedObjectMapper(): ObjectMapper {
-            return ObjectMapper().apply {
-                // Prevent deserialization of unknown properties that could lead to injection attacks
-                configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
-                // Fail if there are trailing tokens after valid JSON structure
-                configure(DeserializationFeature.FAIL_ON_TRAILING_TOKENS, true)
-            }
-        }
     }
 }
