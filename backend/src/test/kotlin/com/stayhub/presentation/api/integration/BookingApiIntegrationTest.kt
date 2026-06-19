@@ -41,7 +41,8 @@ class BookingApiIntegrationTest : AbstractApiIntegrationTest() {
 
     @Test
     fun `create returns 401 without a token`() {
-        val (checkIn, checkOut) = nextStayWindow()
+        val checkIn = LocalDate.now().plusDays(60)
+        val checkOut = checkIn.plusDays(3)
         http.post().uri("/api/v1/bookings")
             .contentType(MediaType.APPLICATION_JSON)
             .bodyValue(bookingBody(checkIn, checkOut))

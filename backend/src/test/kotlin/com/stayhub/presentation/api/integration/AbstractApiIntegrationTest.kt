@@ -66,15 +66,15 @@ abstract class AbstractApiIntegrationTest {
      * Hands out a unique, non-overlapping, in-window stay date range so that
      * booking-creating tests across all integration classes don't collide on the
      * shared Testcontainers DB. Windows start at +46 days (clear of the seed
-     * bookings at ≤ +45) and step by 5; capped to stay within the +89-day seeded
+     * bookings at ≤ +45) and step by 4; capped to stay within the +89-day seeded
      * availability window.
      */
     protected fun nextStayWindow(nights: Long = 3): Pair<LocalDate, LocalDate> {
         val slot = stayWindowCounter.getAndIncrement()
-        require(slot <= 8) {
-            "nextStayWindow() exhausted (>9 windows in one JVM run — tests retried in the same process?)"
+        require(slot <= 10) {
+            "nextStayWindow() exhausted (>11 windows in one JVM run — tests retried in the same process?)"
         }
-        val checkIn = LocalDate.now().plusDays(46 + slot * 5L)
+        val checkIn = LocalDate.now().plusDays(46 + slot * 4L)
         return checkIn to checkIn.plusDays(nights)
     }
 
