@@ -22,8 +22,10 @@ class BookingJourneyFlowTest : AbstractFlowTest() {
     fun `guest registers, books a property, and confirms payment`() {
         val token = registerGuest()
 
-        // Free, in-window dates (clear of the +10..45 seed bookings).
-        val checkIn = LocalDate.now().plusDays(70)
+        // Per-run offset (50..82) keeps the 3-night stay clear of the seed
+        // bookings (≤ +45) and inside the +89-day seeded availability window,
+        // and avoids collisions when this test is re-run in the same JVM.
+        val checkIn = LocalDate.now().plusDays(50 + (System.nanoTime() % 33))
         val checkOut = checkIn.plusDays(3)
 
         // 1. Create booking — PENDING + PaymentIntent. Capture the response body
@@ -47,9 +49,14 @@ class BookingJourneyFlowTest : AbstractFlowTest() {
         @Suppress("UNCHECKED_CAST")
         val priceBreakdown = created["price_breakdown"] as Map<String, Any?>
         assertThat((priceBreakdown["nights"] as Number).toInt()).isEqualTo(3)
+        assertThat(created["reference_number"]).isNotNull()
+        assertThat(created["hold_expires_at"]).isNotNull()
 
         // Stub client secret is "pi_stub_secret_<paymentIntentId>".
         val paymentIntentId = clientSecret.removePrefix("pi_stub_secret_")
+        assertThat(paymentIntentId)
+            .withFailMessage("client_secret format changed — expected 'pi_stub_secret_<id>'")
+            .isNotEqualTo(clientSecret)
 
         // 2. Confirm booking after the (stubbed, auto-succeeded) payment.
         http.post()
