@@ -167,10 +167,12 @@ Map the DTO in the controller, NOT in the use case.
 | **Domain** | Pure unit test | Entity invariants, value object equality | None — pure business rules |
 | **Application** (use case) | Unit test with fake ports | `CalculatePriceUseCaseTest`: mock the repository, assert validation + orchestration | MockK fakes for ports |
 | **Outbound adapter** | Integration test against real DB | `AvailabilityRepositoryAdapterTest` with TestContainers PostgreSQL | None for the SUT — real R2DBC + real Postgres |
-| **Inbound adapter** (controller) | `@WebFluxTest` slice | `PropertyControllerTest` with `@MockkBean` use cases | Mocked use case |
-| **End-to-end** | Full `@SpringBootTest` + TestContainers | Full app boot, hit the endpoint with WebTestClient | Optionally mock external HTTP (Mapbox) via WireMock |
+| **Inbound adapter** (controller) | `@WebFluxTest` slice — fast, for controller branch logic only | `PropertyControllerTest` with `@MockkBean` use cases | Mocked use case — **does NOT exercise real codecs/security/CORS; insufficient on its own** |
+| **Endpoint integration** (REQUIRED per endpoint) | Full `@SpringBootTest(RANDOM_PORT)` + `WebTestClient.bindToServer()` + TestContainers, in `presentation/api/integration/` extending `AbstractApiIntegrationTest` | `BookingApiIntegrationTest` — real HTTP to the endpoint, happy + key error paths | None for the SUT; external HTTP (Mapbox) via WireMock once it becomes real |
 
-**Mocks-only unit tests miss SQL bugs, wiring bugs, and serialization bugs** (we paid for this in Phase 3+4 — see `WAVE4-PHASE3-LEARNINGS.md`). Always include at least one integration test that boots Spring + DB for any new use case.
+**Mocks-only and slice tests miss wiring, codec, security, and SQL bugs** (we paid for this repeatedly — Phase 3+4 `WAVE4-PHASE3-LEARNINGS.md`, plus #130 CORS preflight and #132 Jackson JSR-310, which a `@WebFluxTest` / `bindToController` slice **cannot** catch because it mocks the use case and skips the real codec + security chain). Always include at least one integration test that boots Spring + DB for any new use case.
+
+**Rule — endpoint coverage is mandatory:** every new or changed HTTP endpoint MUST have a **per-endpoint integration test** (full context, `bindToServer`) in `presentation/api/integration/`, in addition to any fast slice test — asserting the real status code and the response/error envelope (happy path + key error paths). Cross-endpoint **user journeys** are covered exactly once, by the Playwright browser E2E (`frontend/tests/e2e/`); do **not** chain endpoints into a "journey" at the backend layer. See `docs/superpowers/specs/2026-06-19-e2e-flow-testing-strategy-design.md`.
 
 ## TDD Cycle (Mandatory)
 
