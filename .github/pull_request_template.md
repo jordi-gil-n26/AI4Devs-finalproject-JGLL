@@ -27,6 +27,7 @@
 
 - [ ] Code follows the Clean Architecture layer rules (no inward → outward dependencies)
 - [ ] All acceptance scenarios from the referenced user story are covered
+- [ ] **Flow/test coverage:** new/changed endpoint has a per-endpoint integration test (full context, `bindToServer`); new/changed user journey is covered by the Playwright E2E — or N/A with reason
 - [ ] API contract changes are reflected in `contracts/` before implementation
 - [ ] No secrets, credentials, or PII in code or logs
 - [ ] Structured logging with trace ID included where applicable

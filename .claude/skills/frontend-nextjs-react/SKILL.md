@@ -120,6 +120,12 @@ vi.mock('@/services/propertyService', () => ({
 }));
 ```
 
+## Journey Coverage (Playwright E2E) — REQUIRED for user journeys
+
+vitest tests here mock the service hooks / `apiClient`, so they verify component and page logic **in isolation** — they never hit a real backend and **cannot** catch integration breakage (a blank page from a backend 500, a CORS/codec failure, a broken redirect). That's a real gap we've been bitten by.
+
+**Rule:** any new or changed **user journey** (a flow that spans pages and real API calls — e.g. search → property → checkout → confirmation) MUST be covered or extended in the Playwright browser E2E (`frontend/tests/e2e/`), which drives the real UI against the real backend + DB. Mocked-hook vitest tests are necessary but **not sufficient** for journey coverage. The E2E navigates via the results list (the Mapbox map uses a dummy token) and completes checkout through the stub payment path. See `docs/superpowers/specs/2026-06-19-e2e-flow-testing-strategy-design.md`.
+
 ## Validation Before Marking Task Done
 
 ```bash
