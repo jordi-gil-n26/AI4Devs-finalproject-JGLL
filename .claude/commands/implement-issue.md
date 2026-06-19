@@ -40,6 +40,7 @@ Use the `superpowers:executing-plans` workflow to implement GitHub issue **$ARGU
    - Implement the minimum code to make them pass.
    - Refactor only if needed; keep tests green.
 5. **Verify before completion.** Run the full validation suite (build, lint/format, unit tests, integration tests where applicable) and show me the actual output. Do not proceed if anything fails.
+   - **Flow/test coverage (definition of done):** if the issue added or changed an HTTP endpoint, there MUST be a per-endpoint integration test (full `@SpringBootTest(RANDOM_PORT)` + `WebTestClient.bindToServer()` + TestContainers, in `presentation/api/integration/`) — a `@WebFluxTest`/`bindToController` slice does not count, it mocks the use case and skips the real codec/security chain (this is how #130 and #132 shipped green). If it added or changed a user journey, the Playwright E2E (`frontend/tests/e2e/`) MUST cover it. The task is **not done** until that coverage exists and is green. See `docs/superpowers/specs/2026-06-19-e2e-flow-testing-strategy-design.md`.
 5a. **Architecture review (backend changes only).** If any changed files live under `backend/src/main/kotlin/`, dispatch the `arch-reviewer` agent:
    ```
    Agent({
