@@ -19,5 +19,11 @@ interface BookingRepository {
     suspend fun save(booking: Booking): Booking
     suspend fun findById(id: UUID): Booking?
     suspend fun findByGuestId(guestId: UUID, pageable: Pageable): Page<Booking>
+    suspend fun findByGuestIdAndCategory(
+        guestId: UUID,
+        category: TripCategory,
+        today: LocalDate,
+        pageable: Pageable,
+    ): Page<Booking>
     suspend fun findByPropertyAndDates(propertyId: UUID, checkIn: LocalDate, checkOut: LocalDate): List<Booking>
 }

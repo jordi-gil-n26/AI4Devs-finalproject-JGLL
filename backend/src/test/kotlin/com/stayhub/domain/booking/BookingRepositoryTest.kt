@@ -40,6 +40,23 @@ class BookingRepositoryTest {
             return PageImpl(filtered, pageable, filtered.size.toLong())
         }
 
+        override suspend fun findByGuestIdAndCategory(
+            guestId: UUID,
+            category: TripCategory,
+            today: LocalDate,
+            pageable: Pageable,
+        ): org.springframework.data.domain.Page<Booking> {
+            val filtered = store.values.filter { b ->
+                b.guestId == guestId && when (category) {
+                    TripCategory.ALL -> true
+                    TripCategory.UPCOMING -> b.status != BookingStatus.CANCELLED && b.checkOut >= today
+                    TripCategory.PAST -> b.status != BookingStatus.CANCELLED && b.checkOut < today
+                    TripCategory.CANCELLED -> b.status == BookingStatus.CANCELLED
+                }
+            }
+            return PageImpl(filtered, pageable, filtered.size.toLong())
+        }
+
         override suspend fun findByPropertyAndDates(
             propertyId: UUID,
             checkIn: LocalDate,

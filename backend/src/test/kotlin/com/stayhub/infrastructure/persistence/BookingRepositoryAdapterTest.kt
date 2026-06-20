@@ -2,6 +2,7 @@ package com.stayhub.infrastructure.persistence
 
 import com.stayhub.domain.booking.Booking
 import com.stayhub.domain.booking.BookingStatus
+import com.stayhub.domain.booking.TripCategory
 import com.stayhub.infrastructure.config.TestContainersConfiguration
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -176,5 +177,57 @@ class BookingRepositoryAdapterTest {
         page.content shouldHaveSize 3
         page.content.first().checkIn shouldBe LocalDate.of(2030, 8, 1)
         page.content.last().checkIn shouldBe LocalDate.of(2030, 6, 1)
+    }
+
+    @Test
+    fun `findByGuestIdAndCategory UPCOMING excludes cancelled and past, by check_out`() = runTest {
+        val today = LocalDate.of(2030, 6, 15)
+        // Upcoming: check_out today or later, not cancelled
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 14), checkOut = LocalDate.of(2030, 6, 20), status = BookingStatus.CONFIRMED))
+        // Past: check_out before today
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 1), checkOut = LocalDate.of(2030, 6, 5), status = BookingStatus.CONFIRMED))
+        // Cancelled (future) must be excluded from UPCOMING
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 25), checkOut = LocalDate.of(2030, 6, 28), status = BookingStatus.CANCELLED))
+
+        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.UPCOMING, today, PageRequest.of(0, 10))
+
+        page.totalElements shouldBe 1L
+        page.content.single().checkOut shouldBe LocalDate.of(2030, 6, 20)
+    }
+
+    @Test
+    fun `findByGuestIdAndCategory PAST returns only non-cancelled with check_out before today`() = runTest {
+        val today = LocalDate.of(2030, 6, 15)
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 1), checkOut = LocalDate.of(2030, 6, 5), status = BookingStatus.COMPLETED))
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 20), checkOut = LocalDate.of(2030, 6, 23), status = BookingStatus.CONFIRMED))
+
+        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.PAST, today, PageRequest.of(0, 10))
+
+        page.totalElements shouldBe 1L
+        page.content.single().checkOut shouldBe LocalDate.of(2030, 6, 5)
+    }
+
+    @Test
+    fun `findByGuestIdAndCategory CANCELLED returns only cancelled bookings`() = runTest {
+        val today = LocalDate.of(2030, 6, 15)
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 20), checkOut = LocalDate.of(2030, 6, 23), status = BookingStatus.CANCELLED))
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 21), checkOut = LocalDate.of(2030, 6, 24), status = BookingStatus.CONFIRMED))
+
+        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.CANCELLED, today, PageRequest.of(0, 10))
+
+        page.totalElements shouldBe 1L
+        page.content.single().status shouldBe BookingStatus.CANCELLED
+    }
+
+    @Test
+    fun `findByGuestIdAndCategory ALL returns every booking for the guest`() = runTest {
+        val today = LocalDate.of(2030, 6, 15)
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 1), checkOut = LocalDate.of(2030, 6, 5), status = BookingStatus.COMPLETED))
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 20), checkOut = LocalDate.of(2030, 6, 23), status = BookingStatus.CANCELLED))
+        adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 25), checkOut = LocalDate.of(2030, 6, 28), status = BookingStatus.CONFIRMED))
+
+        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.ALL, today, PageRequest.of(0, 10))
+
+        page.totalElements shouldBe 3L
     }
 }
