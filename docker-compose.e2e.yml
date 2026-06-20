@@ -44,7 +44,8 @@ services:
     ports:
       - "3000:3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O - http://localhost:3000/search > /dev/null 2>&1 || exit 1"]
+      # node:22-bookworm-slim has no wget/curl; use Node to probe the server.
+      test: ["CMD-SHELL", "node -e \"require('http').get('http://localhost:3000/search', r => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))\""]
       interval: 10s
       timeout: 5s
       retries: 12
