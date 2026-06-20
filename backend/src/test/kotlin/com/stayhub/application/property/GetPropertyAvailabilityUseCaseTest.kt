@@ -2,6 +2,9 @@ package com.stayhub.application.property
 
 import com.stayhub.domain.availability.AvailabilityRepository
 import com.stayhub.domain.availability.UnavailableDate
+import com.stayhub.domain.property.Property
+import com.stayhub.domain.property.PropertyRepository
+import com.stayhub.application.error.NotFoundException
 import com.stayhub.application.error.ValidationException
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.collections.shouldHaveSize
@@ -16,12 +19,15 @@ import java.util.UUID
 class GetPropertyAvailabilityUseCaseTest {
 
     private val availabilityRepository = mockk<AvailabilityRepository>()
-    private val useCase = GetPropertyAvailabilityUseCase(availabilityRepository)
+    private val propertyRepository = mockk<PropertyRepository>()
+    private val useCase = GetPropertyAvailabilityUseCase(availabilityRepository, propertyRepository)
+
+    private val propertyId = UUID.randomUUID()
+    private val stubProperty = mockk<Property>()
 
     @Test
     fun `returns unavailable dates for a valid date range`() {
         runBlocking {
-            val propertyId = UUID.randomUUID()
             val from = LocalDate.of(2027, 7, 1)
             val to = LocalDate.of(2027, 7, 31)
             val unavailable = listOf(
@@ -30,6 +36,7 @@ class GetPropertyAvailabilityUseCaseTest {
                 UnavailableDate(date = LocalDate.of(2027, 7, 20), reason = "blocked"),
             )
 
+            coEvery { propertyRepository.findById(propertyId) } returns stubProperty
             coEvery { availabilityRepository.findUnavailableDates(propertyId, from, to) } returns unavailable
 
             val result = useCase.execute(propertyId, from, to)
@@ -42,7 +49,6 @@ class GetPropertyAvailabilityUseCaseTest {
     @Test
     fun `throws ValidationException when from is after to`() {
         runBlocking {
-            val propertyId = UUID.randomUUID()
             val from = LocalDate.of(2027, 8, 1)
             val to = LocalDate.of(2027, 7, 1)
 
@@ -55,7 +61,6 @@ class GetPropertyAvailabilityUseCaseTest {
     @Test
     fun `throws ValidationException when from equals to`() {
         runBlocking {
-            val propertyId = UUID.randomUUID()
             val date = LocalDate.of(2027, 7, 1)
 
             shouldThrow<ValidationException> {
@@ -67,15 +72,29 @@ class GetPropertyAvailabilityUseCaseTest {
     @Test
     fun `returns empty list when no unavailable dates in range`() {
         runBlocking {
-            val propertyId = UUID.randomUUID()
             val from = LocalDate.of(2027, 7, 1)
             val to = LocalDate.of(2027, 7, 31)
 
+            coEvery { propertyRepository.findById(propertyId) } returns stubProperty
             coEvery { availabilityRepository.findUnavailableDates(propertyId, from, to) } returns emptyList()
 
             val result = useCase.execute(propertyId, from, to)
 
             result shouldHaveSize 0
+        }
+    }
+
+    @Test
+    fun `throws NotFoundException when property does not exist`() {
+        runBlocking {
+            val from = LocalDate.of(2027, 7, 1)
+            val to = LocalDate.of(2027, 7, 31)
+
+            coEvery { propertyRepository.findById(propertyId) } returns null
+
+            shouldThrow<NotFoundException> {
+                useCase.execute(propertyId, from, to)
+            }
         }
     }
 }
