@@ -1,9 +1,7 @@
 package com.stayhub.infrastructure.config
 
-import com.stayhub.application.search.SearchPropertiesUseCase
 import com.stayhub.domain.property.GeocodeService
 import com.stayhub.infrastructure.geocoding.MapboxGeocodeAdapter
-import io.mockk.mockk
 import org.springframework.boot.test.context.TestConfiguration
 import org.springframework.context.annotation.Bean
 import org.testcontainers.containers.PostgreSQLContainer
@@ -57,10 +55,6 @@ class TestContainersConfiguration {
 
     @Bean
     fun postgresContainer() = postgresContainer
-
-    // Mock beans for tests that need them
-    @Bean
-    fun searchPropertiesUseCase() = mockk<SearchPropertiesUseCase>()
 
     @Bean
     fun geocodeService(): GeocodeService = MapboxGeocodeAdapter("test-token")
