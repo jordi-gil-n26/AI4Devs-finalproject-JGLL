@@ -155,6 +155,26 @@ export interface PaymentFormProps {
  * `@stripe/react-stripe-js` entirely.
  */
 export function PaymentForm({ clientSecret, bookingId, onSuccess, onError }: PaymentFormProps) {
+  // E2E mode: real Stripe Elements can't run headlessly with stub keys. When the
+  // app is built for E2E, skip Stripe and complete using the backend's stub
+  // PaymentIntent. The stub client secret is `pi_stub_secret_<paymentIntentId>`.
+  if (process.env.NEXT_PUBLIC_E2E === 'true') {
+    const stubPaymentIntentId = clientSecret.replace(/^pi_stub_secret_/, '');
+    return (
+      <div data-testid="payment-form-wrapper">
+        <p className="text-sm text-gray-500 mb-2">E2E test mode — Stripe bypassed.</p>
+        <button
+          type="button"
+          data-testid="pay-button"
+          onClick={() => onSuccess(stubPaymentIntentId)}
+          className="w-full bg-blue-600 text-white rounded-lg py-3 font-medium hover:bg-blue-700"
+        >
+          Pay (E2E)
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div data-testid="payment-form-wrapper" data-booking-id={bookingId}>
       <Elements stripe={stripePromise} options={{ clientSecret }}>
