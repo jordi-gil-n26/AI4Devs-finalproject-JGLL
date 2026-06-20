@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
@@ -31,7 +31,7 @@ import type { ConfirmationSessionData } from '@/types/booking';
  *   5. If hold expires, show error + "Back to search" CTA.
  *   6. Handle API errors (409 → dates taken, 400 → validation).
  */
-export default function CheckoutPage() {
+function CheckoutPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -262,5 +262,13 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function CheckoutPage() {
+  return (
+    <Suspense>
+      <CheckoutPageContent />
+    </Suspense>
   );
 }
