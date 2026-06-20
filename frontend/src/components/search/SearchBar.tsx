@@ -98,6 +98,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   return (
     <form
       onSubmit={handleSubmit}
+      data-testid="search-form"
       className="w-full bg-white rounded-lg shadow-lg p-6"
     >
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -109,6 +110,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           <input
             id="location"
             type="text"
+            data-testid="search-location"
             placeholder="Where are you going?"
             value={location}
             onChange={handleLocationChange}
@@ -189,6 +191,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
       <div className="mt-6 flex justify-center md:justify-end">
         <button
           type="submit"
+          data-testid="search-submit"
           className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
         >
           Search

@@ -22,18 +22,12 @@ export interface ConfirmBookingRequest {
 
 /**
  * Response from POST /api/v1/bookings/{bookingId}/confirm.
- * The backend returns the full booking detail; we model the
- * subset that the confirmation page actually uses.
+ * The backend returns the full booking detail (same shape as
+ * BookingDetailResponse). `id` is the booking UUID; `property.title`
+ * is the property name; `price_breakdown.total_eur` is the total.
+ * There is no top-level `booking_id`, `property_title`, or `total_eur`.
  */
-export interface ConfirmBookingResponse {
-  booking_id: string;
-  reference_number: string;
-  status: import('@/types').BookingStatus;
-  property_title?: string;
-  check_in: string;
-  check_out: string;
-  total_eur: number;
-}
+export type ConfirmBookingResponse = import('@/types').BookingDetailResponse;
 
 /** Shape stored in sessionStorage to pass data to the confirmation page. */
 export interface ConfirmationSessionData {

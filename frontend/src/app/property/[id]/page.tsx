@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo } from 'react';
+import React, { Suspense, useCallback, useMemo } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   MapPin,
@@ -36,7 +36,7 @@ import { ReviewList } from '@/components/property/ReviewList';
  *   - Reserve CTA
  *   - ReviewList
  */
-export default function PropertyDetailPage() {
+function PropertyDetailPageContent() {
   const params = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -339,5 +339,13 @@ export default function PropertyDetailPage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function PropertyDetailPage() {
+  return (
+    <Suspense>
+      <PropertyDetailPageContent />
+    </Suspense>
   );
 }

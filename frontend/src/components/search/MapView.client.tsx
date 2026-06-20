@@ -110,12 +110,10 @@ export function MapViewClient({
             longitude={property.location.lng}
             latitude={property.location.lat}
             anchor="bottom"
-            data-testid={`marker-${property.id}`}
             onClick={() => handleMarkerClick(property.id)}
-            onMouseEnter={() => handleMarkerHover(property.id)}
-            onMouseLeave={handleMarkerLeave}
           >
             <div
+              data-testid={`marker-${property.id}`}
               className={`
                 flex items-center justify-center w-8 h-8 rounded-full
                 cursor-pointer transition-all transform
@@ -127,6 +125,8 @@ export function MapViewClient({
                 ${selectedPropertyId === property.id ? 'ring-2 ring-blue-300' : ''}
               `}
               style={{ boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}
+              onMouseEnter={() => handleMarkerHover(property.id)}
+              onMouseLeave={handleMarkerLeave}
             >
               <span className="text-white text-xs font-bold">📍</span>
             </div>

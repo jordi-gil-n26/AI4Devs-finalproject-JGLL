@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useState, useRef } from 'react';
+import React, { Suspense, useCallback, useMemo, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { SearchBar, type SearchParams } from '@/components/search/SearchBar';
 import { FilterPanel } from '@/components/search/FilterPanel';
@@ -30,7 +30,7 @@ import type { SearchFilters, PropertySummary } from '@/types';
  * - bedrooms: minimum bedrooms (optional)
  * - amenities: comma-separated amenities (optional)
  */
-export default function SearchPage() {
+function SearchPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
@@ -48,8 +48,8 @@ export default function SearchPage() {
 
   // Determine bounding box: use geocoded results or URL params or default
   const bbox = useMemo(() => {
-    if (geocodeResults && geocodeResults.length > 0) {
-      const result = geocodeResults[0];
+    if (geocodeResults && geocodeResults.results.length > 0) {
+      const result = geocodeResults.results[0];
       return result.bbox || { sw_lat: 40, sw_lng: 2, ne_lat: 42, ne_lng: 4 };
     }
 
@@ -331,5 +331,13 @@ export default function SearchPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense>
+      <SearchPageContent />
+    </Suspense>
   );
 }
