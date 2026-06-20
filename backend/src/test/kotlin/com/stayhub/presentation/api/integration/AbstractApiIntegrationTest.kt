@@ -71,9 +71,13 @@ abstract class AbstractApiIntegrationTest {
      */
     protected fun nextStayWindow(nights: Long = 3): Pair<LocalDate, LocalDate> {
         val slot = stayWindowCounter.getAndIncrement()
-        require(slot <= 10) {
-            "nextStayWindow() exhausted (>11 windows in one JVM run — tests retried in the same process?)"
+        require(slot <= 60) {
+            "nextStayWindow() exhausted (>61 windows in one JVM run — tests retried in the same process?)"
         }
+        // Windows start at +46 days (clear of the seed bookings at <= +45) and step
+        // by 4. Booking creation does NOT consult the seeded availability table
+        // (only holds + non-cancelled overlapping bookings), so windows may extend
+        // beyond the +89-day seeded availability horizon without affecting creation.
         val checkIn = LocalDate.now().plusDays(46 + slot * 4L)
         return checkIn to checkIn.plusDays(nights)
     }
