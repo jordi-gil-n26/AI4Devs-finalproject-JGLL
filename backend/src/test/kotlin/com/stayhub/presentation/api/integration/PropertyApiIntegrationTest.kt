@@ -42,12 +42,8 @@ class PropertyApiIntegrationTest : AbstractApiIntegrationTest() {
             .expectBody().jsonPath("$.property_id").isEqualTo(propertyId)
     }
 
-    // NOTE: availability for an unknown property returns 200 + empty list (not 404).
-    // GetPropertyAvailabilityUseCase does not validate property existence — it queries
-    // the availability table which simply returns no rows. This is a real behavioral
-    // gap: the API should return 404 for unknown properties here. See DONE_WITH_CONCERNS.
     @Test
-    fun `availability returns 200 with empty unavailable_dates for an unknown property`() {
+    fun `availability returns 404 for an unknown property`() {
         val from = LocalDate.now()
         val to = from.plusDays(30)
         http.get().uri { b ->
@@ -55,10 +51,8 @@ class PropertyApiIntegrationTest : AbstractApiIntegrationTest() {
                 .queryParam("from", "$from").queryParam("to", "$to").build()
         }
             .exchange()
-            .expectStatus().isOk
-            .expectBody()
-            .jsonPath("$.property_id").isEqualTo(unknownId)
-            .jsonPath("$.unavailable_dates").isArray
+            .expectStatus().isNotFound
+            .expectBody().jsonPath("$.error.code").isEqualTo("NOT_FOUND")
     }
 
     @Test
