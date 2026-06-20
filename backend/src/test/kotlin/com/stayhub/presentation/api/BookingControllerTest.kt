@@ -1,10 +1,13 @@
 package com.stayhub.presentation.api
 
 import com.stayhub.application.booking.BookingPriceBreakdown
+import com.stayhub.application.booking.CancelBookingUseCase
 import com.stayhub.application.booking.ConfirmBookingUseCase
 import com.stayhub.application.booking.CreateBookingCommand
 import com.stayhub.application.booking.CreateBookingResult
 import com.stayhub.application.booking.CreateBookingUseCase
+import com.stayhub.application.booking.GetBookingDetailsUseCase
+import com.stayhub.application.booking.GetMyTripsUseCase
 import com.stayhub.application.error.DatesUnavailableException
 import com.stayhub.application.error.ForbiddenException
 import com.stayhub.application.error.NotFoundException
@@ -40,11 +43,17 @@ class BookingControllerTest {
 
     private val createBookingUseCase = mockk<CreateBookingUseCase>()
     private val confirmBookingUseCase = mockk<ConfirmBookingUseCase>()
+    private val getMyTripsUseCase = mockk<GetMyTripsUseCase>()
+    private val getBookingDetailsUseCase = mockk<GetBookingDetailsUseCase>()
+    private val cancelBookingUseCase = mockk<CancelBookingUseCase>()
     private val propertyRepository = mockk<PropertyRepository>()
 
     private val controller = BookingController(
         createBookingUseCase = createBookingUseCase,
         confirmBookingUseCase = confirmBookingUseCase,
+        getMyTripsUseCase = getMyTripsUseCase,
+        getBookingDetailsUseCase = getBookingDetailsUseCase,
+        cancelBookingUseCase = cancelBookingUseCase,
         propertyRepository = propertyRepository,
     )
 
