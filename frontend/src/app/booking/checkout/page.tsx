@@ -97,26 +97,32 @@ function CheckoutPageContent() {
       { bookingId: booking.booking_id, payload: { payment_intent_id: paymentIntentId } },
       {
         onSuccess: (data) => {
-          // Store minimal confirmation data for the confirmation page.
+          if (!booking) return;
+          // booking_id comes from the CREATE response (booking.booking_id).
+          // The CONFIRM response (data) is BookingDetailResponse: it has
+          // data.id (not data.booking_id), data.property.title (not
+          // data.property_title), and data.price_breakdown.total_eur
+          // (not data.total_eur).
+          const bookingId = booking.booking_id;
           const sessionData: ConfirmationSessionData = {
-            booking_id: data.booking_id,
+            booking_id: bookingId,
             reference_number: data.reference_number,
-            property_title: data.property_title ?? property?.title ?? 'Your stay',
+            property_title: data.property?.title ?? property?.title ?? 'Your stay',
             property_photo_url: property?.photos?.[0]?.url,
             check_in: data.check_in ?? checkIn,
             check_out: data.check_out ?? checkOut,
-            total_eur: data.total_eur ?? booking.price_breakdown.total_eur,
+            total_eur: data.price_breakdown?.total_eur ?? booking.price_breakdown.total_eur,
           };
           try {
             sessionStorage.setItem(
-              `confirmation_${data.booking_id}`,
+              `confirmation_${bookingId}`,
               JSON.stringify(sessionData),
             );
           } catch {
             // sessionStorage unavailable (e.g. private mode) — ignore; confirmation
             // page will fall back gracefully.
           }
-          router.push(`/confirmation/${data.booking_id}`);
+          router.push(`/confirmation/${bookingId}`);
         },
         onError: (err) => {
           setPageError(`Payment confirmation failed: ${err.message}`);

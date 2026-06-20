@@ -267,13 +267,33 @@ describe('CheckoutPage', () => {
       isPending: false,
     });
 
+    // Confirm response is BookingDetailResponse (not the old flat shape).
+    // It has `id` (not `booking_id`), `property.title` (not `property_title`),
+    // and `price_breakdown.total_eur` (not a top-level `total_eur`).
     const mockConfirmResponse = {
-      booking_id: 'booking-uuid-1',
+      id: 'booking-uuid-1',
       reference_number: 'BK-12345678',
       status: 'confirmed' as const,
+      property: {
+        id: 'prop-uuid-1',
+        title: 'Cosy Studio in Berlin',
+        photo_url: 'https://example.com/p1.jpg',
+        city: 'Berlin',
+        country: 'Germany',
+      },
       check_in: '2026-07-10',
       check_out: '2026-07-13',
-      total_eur: 453.6,
+      guest_count: 2,
+      price_breakdown: {
+        nights: 3,
+        nightly_rate_eur: 120,
+        subtotal_eur: 360,
+        cleaning_fee_eur: 45,
+        service_fee_eur: 48.6,
+        tax_eur: 0,
+        total_eur: 453.6,
+      },
+      created_at: '2026-07-07T10:00:00Z',
     };
 
     (useConfirmBooking as ReturnType<typeof vi.fn>).mockReturnValue({
