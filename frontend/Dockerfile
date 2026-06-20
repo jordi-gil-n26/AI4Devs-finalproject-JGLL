@@ -11,7 +11,7 @@ RUN echo "registry=https://registry.npmjs.org/" > .npmrc && \
     npm install --no-audit --no-fund
 COPY . .
 ARG NEXT_PUBLIC_API_URL=http://localhost:8080
-ARG NEXT_PUBLIC_E2E=true
+ARG NEXT_PUBLIC_E2E=false
 ARG NEXT_PUBLIC_STRIPE_KEY=pk_test_dummy
 ARG NEXT_PUBLIC_MAPBOX_TOKEN=test-token
 ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \

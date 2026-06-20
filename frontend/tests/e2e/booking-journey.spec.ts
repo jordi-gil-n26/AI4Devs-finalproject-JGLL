@@ -21,9 +21,11 @@ function isoDate(daysFromNow: number): string {
 
 test('guest registers, searches, books a property, and reaches confirmation', async ({ page }) => {
   const email = `e2e-${Date.now()}@example.com`;
-  // 24..35 days out: inside the +89-day seeded availability, between the seed
-  // bookings at +20-23 and +40-45; offset varies per run to avoid collisions.
-  const offset = 24 + (Date.now() % 12);
+  // 46..85 days out: inside the +89-day seeded availability window and entirely
+  // clear of the seed bookings (which end at +45). A fresh DB (CI) always has
+  // these free; the wide per-run offset also reduces collisions when re-running
+  // against a persistent local stack.
+  const offset = 46 + (Date.now() % 40);
   const checkIn = isoDate(offset);
   const checkOut = isoDate(offset + 3);
 
