@@ -3,6 +3,7 @@ package com.stayhub.infrastructure.payment
 import com.stayhub.domain.booking.PaymentIntent
 import com.stayhub.domain.booking.PaymentService
 import com.stayhub.domain.booking.PaymentStatus
+import com.stayhub.domain.booking.RefundResult
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
 import java.util.UUID
@@ -22,5 +23,12 @@ class StubPaymentAdapter : PaymentService {
 
     override suspend fun getPaymentStatus(paymentIntentId: String): PaymentStatus {
         return intents[paymentIntentId] ?: PaymentStatus.FAILED
+    }
+
+    override suspend fun refund(paymentIntentId: String, amountEur: BigDecimal): RefundResult {
+        // Stub: always "succeeds". A real Stripe adapter (issue #53) would call
+        // the Refunds API here and translate failures into PaymentFailedException.
+        val refundId = "re_stub_${UUID.randomUUID().toString().replace("-", "").take(24)}"
+        return RefundResult(refundId = refundId, amountEur = amountEur)
     }
 }
