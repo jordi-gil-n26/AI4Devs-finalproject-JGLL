@@ -134,16 +134,14 @@ export default function ConfirmationPage() {
 
       {/* CTAs */}
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        {/* "View My Trips" — coming soon in US4 */}
+        {/* "View My Trips" */}
         <button
           type="button"
-          disabled
-          title="Coming soon"
-          className="py-3 px-6 border border-gray-300 text-gray-400 font-semibold rounded-xl cursor-not-allowed"
+          onClick={() => router.push('/trips')}
+          className="py-3 px-6 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
           data-testid="view-trips-button"
         >
           View My Trips
-          <span className="ml-2 text-xs font-normal">(coming soon)</span>
         </button>
 
         {/* Back to Search */}

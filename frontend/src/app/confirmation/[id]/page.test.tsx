@@ -112,14 +112,16 @@ describe('ConfirmationPage', () => {
     );
   });
 
-  it('shows "View My Trips" button in disabled state', async () => {
+  it('shows "View My Trips" button and navigates to /trips when clicked', async () => {
     setSessionData(mockSessionData);
     render(<ConfirmationPage />);
     await waitFor(() => {
       const btn = screen.getByTestId('view-trips-button');
       expect(btn).toBeInTheDocument();
-      expect(btn).toBeDisabled();
+      expect(btn).not.toBeDisabled();
     });
+    screen.getByTestId('view-trips-button').click();
+    expect(mockPush).toHaveBeenCalledWith('/trips');
   });
 
   it('shows "Back to Search" button', async () => {
