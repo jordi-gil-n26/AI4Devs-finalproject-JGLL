@@ -25,6 +25,7 @@ describe('TripCard', () => {
     expect(screen.getByText('BK-20300101-ABC123')).toBeInTheDocument();
     expect(screen.getByText('€386.00')).toBeInTheDocument();
     expect(screen.getByText('confirmed')).toBeInTheDocument();
+    expect(screen.getByText('10 Jun 2030 → 13 Jun 2030')).toBeInTheDocument();
   });
 
   it('calls onClick with the booking id when activated', async () => {
