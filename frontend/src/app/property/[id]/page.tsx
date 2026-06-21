@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense, useCallback, useMemo } from 'react';
+import React, { Suspense, useCallback, useMemo, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import {
   MapPin,
@@ -46,6 +46,9 @@ function PropertyDetailPageContent() {
   // Date state driven by URL query params
   const checkIn = searchParams.get('check_in') || undefined;
   const checkOut = searchParams.get('check_out') || undefined;
+
+  const holdExpired = searchParams.get('expired') === 'true';
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   // Determine availability window: next 3 months
   const availabilityRange = useMemo(() => {
@@ -135,6 +138,25 @@ function PropertyDetailPageContent() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8" data-testid="property-page">
+      {holdExpired && !bannerDismissed && (
+        <div
+          data-testid="expired-banner"
+          role="alert"
+          className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+        >
+          <span>Your 10-minute hold expired — please reserve again.</span>
+          <button
+            type="button"
+            onClick={() => setBannerDismissed(true)}
+            aria-label="Dismiss"
+            data-testid="expired-banner-dismiss"
+            className="font-semibold text-amber-800 hover:text-amber-900"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Back navigation */}
       <button
         type="button"

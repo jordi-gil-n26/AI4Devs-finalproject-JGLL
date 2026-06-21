@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ReactNode } from 'react';
@@ -246,6 +247,42 @@ describe('PropertyDetailPage', () => {
       expect(mockPush).toHaveBeenCalledWith(
         expect.stringContaining('/booking/checkout?propertyId=prop-uuid-001'),
       );
+    });
+  });
+
+  describe('Expired-hold banner', () => {
+    beforeEach(async () => {
+      const { useSearchParams } = await import('next/navigation');
+      (useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue(
+        new URLSearchParams({}),
+      );
+    });
+
+    it('shows the expired-hold banner when ?expired=true', async () => {
+      const { useSearchParams } = await import('next/navigation');
+      (useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue(
+        new URLSearchParams({ expired: 'true' }),
+      );
+
+      render(<PropertyDetailPage />, { wrapper: createWrapper() });
+      expect(screen.getByTestId('expired-banner')).toBeInTheDocument();
+    });
+
+    it('does not show the banner without ?expired', () => {
+      render(<PropertyDetailPage />, { wrapper: createWrapper() });
+      expect(screen.queryByTestId('expired-banner')).not.toBeInTheDocument();
+    });
+
+    it('dismisses the expired-hold banner', async () => {
+      const user = userEvent.setup();
+      const { useSearchParams } = await import('next/navigation');
+      (useSearchParams as ReturnType<typeof vi.fn>).mockReturnValue(
+        new URLSearchParams({ expired: 'true' }),
+      );
+
+      render(<PropertyDetailPage />, { wrapper: createWrapper() });
+      await user.click(screen.getByTestId('expired-banner-dismiss'));
+      expect(screen.queryByTestId('expired-banner')).not.toBeInTheDocument();
     });
   });
 });
