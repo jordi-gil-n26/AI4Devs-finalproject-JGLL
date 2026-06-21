@@ -27,34 +27,40 @@ class StubEmailAdapterTest {
     }
 
     @Test
-    fun `sendBookingConfirmation adds confirmation to sentEmails`() = runBlocking {
-        val confirmation = aConfirmation(referenceNumber = "BK-001")
+    fun `sendBookingConfirmation adds confirmation to sentEmails`() {
+        runBlocking {
+            val confirmation = aConfirmation(referenceNumber = "BK-001")
 
-        adapter.sendBookingConfirmation(confirmation)
+            adapter.sendBookingConfirmation(confirmation)
 
-        assertEquals(1, adapter.sentEmails.size) {
-            "sentEmails should contain exactly 1 item after one send"
+            assertEquals(1, adapter.sentEmails.size) {
+                "sentEmails should contain exactly 1 item after one send"
+            }
         }
     }
 
     @Test
-    fun `sentEmails contains correct referenceNumber after sending`() = runBlocking {
-        val confirmation = aConfirmation(referenceNumber = "BK-REF-42")
+    fun `sentEmails contains correct referenceNumber after sending`() {
+        runBlocking {
+            val confirmation = aConfirmation(referenceNumber = "BK-REF-42")
 
-        adapter.sendBookingConfirmation(confirmation)
+            adapter.sendBookingConfirmation(confirmation)
 
-        assertEquals("BK-REF-42", adapter.sentEmails[0].referenceNumber) {
-            "Stored confirmation should have the expected referenceNumber"
+            assertEquals("BK-REF-42", adapter.sentEmails[0].referenceNumber) {
+                "Stored confirmation should have the expected referenceNumber"
+            }
         }
     }
 
     @Test
-    fun `sending twice results in sentEmails size 2`() = runBlocking {
-        adapter.sendBookingConfirmation(aConfirmation(referenceNumber = "BK-001"))
-        adapter.sendBookingConfirmation(aConfirmation(referenceNumber = "BK-002"))
+    fun `sending twice results in sentEmails size 2`() {
+        runBlocking {
+            adapter.sendBookingConfirmation(aConfirmation(referenceNumber = "BK-001"))
+            adapter.sendBookingConfirmation(aConfirmation(referenceNumber = "BK-002"))
 
-        assertEquals(2, adapter.sentEmails.size) {
-            "sentEmails should contain 2 items after two sends"
+            assertEquals(2, adapter.sentEmails.size) {
+                "sentEmails should contain 2 items after two sends"
+            }
         }
     }
 

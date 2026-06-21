@@ -97,109 +97,123 @@ class ConfirmBookingUseCaseTest {
     )
 
     @Test
-    fun `happy path transitions PENDING to CONFIRMED and persists`() = runBlocking {
-        coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
-        coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.SUCCEEDED
-        val saved = slot<Booking>()
-        coEvery { bookingRepository.save(capture(saved)) } answers { saved.captured }
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        coEvery { holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut) } returns null
+    fun `happy path transitions PENDING to CONFIRMED and persists`() {
+        runBlocking {
+            coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
+            coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.SUCCEEDED
+            val saved = slot<Booking>()
+            coEvery { bookingRepository.save(capture(saved)) } answers { saved.captured }
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            coEvery { holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut) } returns null
 
-        val confirmed = useCase.execute(bookingId, "pi_stub_abc", guestId)
+            val confirmed = useCase.execute(bookingId, "pi_stub_abc", guestId)
 
-        confirmed.status shouldBe BookingStatus.CONFIRMED
-        saved.captured.status shouldBe BookingStatus.CONFIRMED
-        coVerify(exactly = 1) { bookingRepository.save(any()) }
-    }
-
-    @Test
-    fun `releases active hold for the same dates`() = runBlocking {
-        val activeHold = AvailabilityHold(
-            id = UUID.randomUUID(),
-            propertyId = propertyId,
-            guestId = guestId,
-            checkIn = checkIn,
-            checkOut = checkOut,
-            heldUntil = Instant.now().plusSeconds(120),
-            createdAt = Instant.now(),
-        )
-        coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
-        coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.SUCCEEDED
-        coEvery { bookingRepository.save(any()) } answers { firstArg() }
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        coEvery {
-            holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut)
-        } returns activeHold
-        coEvery { holdRepository.releaseHold(activeHold.id) } just Runs
-
-        useCase.execute(bookingId, "pi_stub_abc", guestId)
-
-        coVerify(exactly = 1) { holdRepository.releaseHold(activeHold.id) }
-    }
-
-    @Test
-    fun `sends booking confirmation email after confirming`() = runBlocking {
-        coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
-        coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.SUCCEEDED
-        coEvery { bookingRepository.save(any()) } answers { firstArg() }
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        coEvery { holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut) } returns null
-        val captured = slot<BookingConfirmation>()
-        coEvery { emailService.sendBookingConfirmation(capture(captured)) } just Runs
-
-        useCase.execute(bookingId, "pi_stub_abc", guestId)
-
-        // Email is fire-and-forget — give the launched coroutine a chance to run
-        delay(100)
-
-        coVerify(timeout = 1000) { emailService.sendBookingConfirmation(any()) }
-        captured.captured.bookingId shouldBe bookingId
-        captured.captured.referenceNumber shouldBe "BK-20260101-ABC123"
-        captured.captured.propertyTitle shouldBe "Cosy Eixample Apartment"
-        captured.captured.totalEur shouldBe BigDecimal("386.00")
-    }
-
-    @Test
-    fun `throws PaymentFailedException when payment status is not SUCCEEDED`() = runBlocking {
-        coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
-        coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.PENDING
-
-        shouldThrow<PaymentFailedException> {
-            useCase.execute(bookingId, "pi_stub_abc", guestId)
-        }
-
-        coVerify(exactly = 0) { bookingRepository.save(any()) }
-    }
-
-    @Test
-    fun `throws PaymentFailedException when payment status is FAILED`() = runBlocking {
-        coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
-        coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.FAILED
-
-        shouldThrow<PaymentFailedException> {
-            useCase.execute(bookingId, "pi_stub_abc", guestId)
+            confirmed.status shouldBe BookingStatus.CONFIRMED
+            saved.captured.status shouldBe BookingStatus.CONFIRMED
+            coVerify(exactly = 1) { bookingRepository.save(any()) }
         }
     }
 
     @Test
-    fun `throws ForbiddenException when booking belongs to a different guest`() = runBlocking {
-        val otherGuest = UUID.randomUUID()
-        coEvery { bookingRepository.findById(bookingId) } returns pendingBooking(guestIdValue = otherGuest)
+    fun `releases active hold for the same dates`() {
+        runBlocking {
+            val activeHold = AvailabilityHold(
+                id = UUID.randomUUID(),
+                propertyId = propertyId,
+                guestId = guestId,
+                checkIn = checkIn,
+                checkOut = checkOut,
+                heldUntil = Instant.now().plusSeconds(120),
+                createdAt = Instant.now(),
+            )
+            coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
+            coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.SUCCEEDED
+            coEvery { bookingRepository.save(any()) } answers { firstArg() }
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            coEvery {
+                holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut)
+            } returns activeHold
+            coEvery { holdRepository.releaseHold(activeHold.id) } just Runs
 
-        shouldThrow<ForbiddenException> {
             useCase.execute(bookingId, "pi_stub_abc", guestId)
-        }
 
-        coVerify(exactly = 0) { paymentService.getPaymentStatus(any()) }
-        coVerify(exactly = 0) { bookingRepository.save(any()) }
+            coVerify(exactly = 1) { holdRepository.releaseHold(activeHold.id) }
+        }
     }
 
     @Test
-    fun `throws NotFoundException when booking does not exist`() = runBlocking {
-        coEvery { bookingRepository.findById(bookingId) } returns null
+    fun `sends booking confirmation email after confirming`() {
+        runBlocking {
+            coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
+            coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.SUCCEEDED
+            coEvery { bookingRepository.save(any()) } answers { firstArg() }
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            coEvery { holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut) } returns null
+            val captured = slot<BookingConfirmation>()
+            coEvery { emailService.sendBookingConfirmation(capture(captured)) } just Runs
 
-        shouldThrow<NotFoundException> {
             useCase.execute(bookingId, "pi_stub_abc", guestId)
+
+            // Email is fire-and-forget — give the launched coroutine a chance to run
+            delay(100)
+
+            coVerify(timeout = 1000) { emailService.sendBookingConfirmation(any()) }
+            captured.captured.bookingId shouldBe bookingId
+            captured.captured.referenceNumber shouldBe "BK-20260101-ABC123"
+            captured.captured.propertyTitle shouldBe "Cosy Eixample Apartment"
+            captured.captured.totalEur shouldBe BigDecimal("386.00")
+        }
+    }
+
+    @Test
+    fun `throws PaymentFailedException when payment status is not SUCCEEDED`() {
+        runBlocking {
+            coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
+            coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.PENDING
+
+            shouldThrow<PaymentFailedException> {
+                useCase.execute(bookingId, "pi_stub_abc", guestId)
+            }
+
+            coVerify(exactly = 0) { bookingRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `throws PaymentFailedException when payment status is FAILED`() {
+        runBlocking {
+            coEvery { bookingRepository.findById(bookingId) } returns pendingBooking()
+            coEvery { paymentService.getPaymentStatus("pi_stub_abc") } returns PaymentStatus.FAILED
+
+            shouldThrow<PaymentFailedException> {
+                useCase.execute(bookingId, "pi_stub_abc", guestId)
+            }
+        }
+    }
+
+    @Test
+    fun `throws ForbiddenException when booking belongs to a different guest`() {
+        runBlocking {
+            val otherGuest = UUID.randomUUID()
+            coEvery { bookingRepository.findById(bookingId) } returns pendingBooking(guestIdValue = otherGuest)
+
+            shouldThrow<ForbiddenException> {
+                useCase.execute(bookingId, "pi_stub_abc", guestId)
+            }
+
+            coVerify(exactly = 0) { paymentService.getPaymentStatus(any()) }
+            coVerify(exactly = 0) { bookingRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `throws NotFoundException when booking does not exist`() {
+        runBlocking {
+            coEvery { bookingRepository.findById(bookingId) } returns null
+
+            shouldThrow<NotFoundException> {
+                useCase.execute(bookingId, "pi_stub_abc", guestId)
+            }
         }
     }
 }

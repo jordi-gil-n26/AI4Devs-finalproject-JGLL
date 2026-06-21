@@ -41,37 +41,43 @@ class LoginGuestUseCaseTest {
     )
 
     @Test
-    fun `happy path - correct credentials return token`() = runBlocking {
-        coEvery { userRepository.findByEmail("alice@example.com") } returns registeredUser
-        coEvery { tokenService.issue(userId) } returns "jwt-token-123"
+    fun `happy path - correct credentials return token`() {
+        runBlocking {
+            coEvery { userRepository.findByEmail("alice@example.com") } returns registeredUser
+            coEvery { tokenService.issue(userId) } returns "jwt-token-123"
 
-        val result = useCase.execute(email = "alice@example.com", password = correctPassword)
+            val result = useCase.execute(email = "alice@example.com", password = correctPassword)
 
-        result.token shouldBe "jwt-token-123"
-        result.firstName shouldBe "Alice"
-        result.userId shouldBe userId
-        coVerify(exactly = 1) { tokenService.issue(userId) }
+            result.token shouldBe "jwt-token-123"
+            result.firstName shouldBe "Alice"
+            result.userId shouldBe userId
+            coVerify(exactly = 1) { tokenService.issue(userId) }
+        }
     }
 
     @Test
-    fun `wrong password throws UnauthorizedException`() = runBlocking {
-        coEvery { userRepository.findByEmail("alice@example.com") } returns registeredUser
+    fun `wrong password throws UnauthorizedException`() {
+        runBlocking {
+            coEvery { userRepository.findByEmail("alice@example.com") } returns registeredUser
 
-        shouldThrow<UnauthorizedException> {
-            useCase.execute(email = "alice@example.com", password = "wrong-password")
+            shouldThrow<UnauthorizedException> {
+                useCase.execute(email = "alice@example.com", password = "wrong-password")
+            }
+
+            coVerify(exactly = 0) { tokenService.issue(any()) }
         }
-
-        coVerify(exactly = 0) { tokenService.issue(any()) }
     }
 
     @Test
-    fun `email not found throws UnauthorizedException`() = runBlocking {
-        coEvery { userRepository.findByEmail("unknown@example.com") } returns null
+    fun `email not found throws UnauthorizedException`() {
+        runBlocking {
+            coEvery { userRepository.findByEmail("unknown@example.com") } returns null
 
-        shouldThrow<UnauthorizedException> {
-            useCase.execute(email = "unknown@example.com", password = "any-password")
+            shouldThrow<UnauthorizedException> {
+                useCase.execute(email = "unknown@example.com", password = "any-password")
+            }
+
+            coVerify(exactly = 0) { tokenService.issue(any()) }
         }
-
-        coVerify(exactly = 0) { tokenService.issue(any()) }
     }
 }
