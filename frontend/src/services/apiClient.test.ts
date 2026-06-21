@@ -138,6 +138,7 @@ describe('maybeRedirectOnUnauthorized', () => {
   }
 
   afterEach(() => {
+    window.localStorage.clear();
     Object.defineProperty(window, 'location', { configurable: true, value: realLocation });
     vi.restoreAllMocks();
   });
@@ -146,13 +147,13 @@ describe('maybeRedirectOnUnauthorized', () => {
     return { isAxiosError: true, response: { status: 401 }, config: { url } };
   }
 
-  it('redirects to /login with the current path on a 401 from a non-auth endpoint', () => {
+  it('clears the stale token and redirects to /login with the current path on a 401 from a non-auth endpoint', () => {
     stubLocation('/booking/checkout', '?propertyId=p1');
-    const removeSpy = vi.spyOn(window.localStorage, 'removeItem');
+    window.localStorage.setItem('auth_token', 'stale-token');
 
     maybeRedirectOnUnauthorized(axios401('/api/v1/bookings'));
 
-    expect(removeSpy).toHaveBeenCalledWith('auth_token');
+    expect(window.localStorage.getItem('auth_token')).toBeNull();
     expect(window.location.assign).toHaveBeenCalledWith(
       '/login?redirect=' + encodeURIComponent('/booking/checkout?propertyId=p1'),
     );
