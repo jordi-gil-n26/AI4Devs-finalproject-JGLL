@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { SearchFilters, PropertySummary, SearchResultsResponse, GeocodeResponse } from '@/types';
+import type { SearchFilters } from '@/types';
 
 describe('Search API Service', () => {
   beforeEach(() => {
@@ -14,15 +14,15 @@ describe('Search API Service', () => {
 
   describe('Module exports', () => {
     it('exports usePropertySearch hook', async () => {
-      const module = await import('./searchService');
-      expect(module.usePropertySearch).toBeDefined();
-      expect(typeof module.usePropertySearch).toBe('function');
+      const mod = await import('./searchService');
+      expect(mod.usePropertySearch).toBeDefined();
+      expect(typeof mod.usePropertySearch).toBe('function');
     });
 
     it('exports useGeocode hook', async () => {
-      const module = await import('./searchService');
-      expect(module.useGeocode).toBeDefined();
-      expect(typeof module.useGeocode).toBe('function');
+      const mod = await import('./searchService');
+      expect(mod.useGeocode).toBeDefined();
+      expect(typeof mod.useGeocode).toBe('function');
     });
   });
 
@@ -135,19 +135,19 @@ describe('Search API Service', () => {
 
   describe('Type safety', () => {
     it('usePropertySearch is a function that calls useQuery', async () => {
-      const module = await import('./searchService');
-      expect(module.usePropertySearch).toBeDefined();
+      const mod = await import('./searchService');
+      expect(mod.usePropertySearch).toBeDefined();
 
       // Verify the hook implementation calls useQuery
-      const signature = module.usePropertySearch.toString();
+      const signature = mod.usePropertySearch.toString();
       expect(signature).toContain('useQuery');
     });
 
     it('useGeocode is a function that calls useQuery', async () => {
-      const module = await import('./searchService');
-      expect(module.useGeocode).toBeDefined();
+      const mod = await import('./searchService');
+      expect(mod.useGeocode).toBeDefined();
 
-      const signature = module.useGeocode.toString();
+      const signature = mod.useGeocode.toString();
       expect(signature).toContain('useQuery');
     });
   });

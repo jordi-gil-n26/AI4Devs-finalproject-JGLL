@@ -10,31 +10,31 @@ vi.mock('mapbox-gl', () => ({
 }));
 
 // Mock react-map-gl
-vi.mock('react-map-gl/mapbox', () => {
-  const React = require('react');
+vi.mock('react-map-gl/mapbox', async () => {
+  const React = await import('react');
   return {
     __esModule: true,
-    default: ({ children, ...props }: any) => (
+    default: ({ children, ...props }: { children?: React.ReactNode; longitude?: number; latitude?: number; [key: string]: unknown }) => (
       React.createElement('div', {
         'data-testid': 'mapbox-map',
         'data-longitude': props.longitude,
         'data-latitude': props.latitude,
       }, children)
     ),
-    Map: ({ children, ...props }: any) => (
+    Map: ({ children, ...props }: { children?: React.ReactNode; longitude?: number; latitude?: number; [key: string]: unknown }) => (
       React.createElement('div', {
         'data-testid': 'mapbox-map',
         'data-longitude': props.longitude,
         'data-latitude': props.latitude,
       }, children)
     ),
-    Marker: ({ children, 'data-testid': testId, ...props }: any) => (
+    Marker: ({ children, 'data-testid': testId, ...props }: { children?: React.ReactNode; 'data-testid'?: string; [key: string]: unknown }) => (
       React.createElement('div', {
         'data-testid': testId,
         ...props,
       }, children)
     ),
-    Popup: ({ children, longitude, latitude }: any) => (
+    Popup: ({ children, longitude, latitude }: { children?: React.ReactNode; longitude?: number; latitude?: number }) => (
       React.createElement('div', {
         'data-testid': 'popup',
         'data-longitude': longitude,

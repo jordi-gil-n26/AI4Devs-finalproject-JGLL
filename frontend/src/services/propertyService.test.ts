@@ -19,27 +19,27 @@ describe('Property API Service', () => {
 
   describe('Module exports', () => {
     it('exports usePropertyDetails hook', async () => {
-      const module = await import('./propertyService');
-      expect(module.usePropertyDetails).toBeDefined();
-      expect(typeof module.usePropertyDetails).toBe('function');
+      const mod = await import('./propertyService');
+      expect(mod.usePropertyDetails).toBeDefined();
+      expect(typeof mod.usePropertyDetails).toBe('function');
     });
 
     it('exports usePropertyAvailability hook', async () => {
-      const module = await import('./propertyService');
-      expect(module.usePropertyAvailability).toBeDefined();
-      expect(typeof module.usePropertyAvailability).toBe('function');
+      const mod = await import('./propertyService');
+      expect(mod.usePropertyAvailability).toBeDefined();
+      expect(typeof mod.usePropertyAvailability).toBe('function');
     });
 
     it('exports usePropertyReviews hook', async () => {
-      const module = await import('./propertyService');
-      expect(module.usePropertyReviews).toBeDefined();
-      expect(typeof module.usePropertyReviews).toBe('function');
+      const mod = await import('./propertyService');
+      expect(mod.usePropertyReviews).toBeDefined();
+      expect(typeof mod.usePropertyReviews).toBe('function');
     });
 
     it('exports usePriceCalculation hook', async () => {
-      const module = await import('./propertyService');
-      expect(module.usePriceCalculation).toBeDefined();
-      expect(typeof module.usePriceCalculation).toBe('function');
+      const mod = await import('./propertyService');
+      expect(mod.usePriceCalculation).toBeDefined();
+      expect(typeof mod.usePriceCalculation).toBe('function');
     });
   });
 
@@ -114,12 +114,12 @@ describe('Property API Service', () => {
 
   describe('Hook implementation', () => {
     it('all hooks call useQuery internally', async () => {
-      const module = await import('./propertyService');
+      const mod = await import('./propertyService');
 
-      expect(module.usePropertyDetails.toString()).toContain('useQuery');
-      expect(module.usePropertyAvailability.toString()).toContain('useQuery');
-      expect(module.usePropertyReviews.toString()).toContain('useQuery');
-      expect(module.usePriceCalculation.toString()).toContain('useQuery');
+      expect(mod.usePropertyDetails.toString()).toContain('useQuery');
+      expect(mod.usePropertyAvailability.toString()).toContain('useQuery');
+      expect(mod.usePropertyReviews.toString()).toContain('useQuery');
+      expect(mod.usePriceCalculation.toString()).toContain('useQuery');
     });
 
     it('usePropertyAvailability passes from/to as query params', () => {

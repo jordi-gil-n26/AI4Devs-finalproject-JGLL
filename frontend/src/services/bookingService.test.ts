@@ -137,12 +137,29 @@ describe('useCreateBooking', () => {
 
 describe('useConfirmBooking', () => {
   const mockConfirmResponse: ConfirmBookingResponse = {
-    booking_id: 'booking-uuid-1',
+    id: 'booking-uuid-1',
     reference_number: 'BK-12345678',
     status: 'confirmed',
     check_in: '2026-07-10',
     check_out: '2026-07-13',
-    total_eur: 453.6,
+    guest_count: 2,
+    property: {
+      id: 'prop-uuid-1',
+      title: 'Test Property',
+      photo_url: 'https://example.com/photo.jpg',
+      city: 'Barcelona',
+      country: 'ES',
+    },
+    price_breakdown: {
+      nights: 3,
+      nightly_rate_eur: 120,
+      subtotal_eur: 360,
+      cleaning_fee_eur: 45,
+      service_fee_eur: 48.6,
+      tax_eur: 0,
+      total_eur: 453.6,
+    },
+    created_at: '2026-07-01T10:00:00Z',
   };
 
   beforeEach(() => {

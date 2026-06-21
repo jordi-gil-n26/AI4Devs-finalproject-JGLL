@@ -90,9 +90,10 @@ function createWrapper() {
     },
   });
 
-  return ({ children }: { children: ReactNode }) => (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-  );
+  function Wrapper({ children }: { children: ReactNode }) {
+    return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  }
+  return Wrapper;
 }
 
 describe('SearchPage', () => {
@@ -183,9 +184,9 @@ describe('SearchPage', () => {
   });
 
   it('handles PropertyCard click and triggers navigation', async () => {
-    const { useRouter } = await vi.importMock('next/navigation');
+    const { useRouter } = await vi.importMock<typeof import('next/navigation')>('next/navigation');
     const mockPush = vi.fn();
-    useRouter.mockReturnValue({
+    (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
       push: mockPush,
     });
 
