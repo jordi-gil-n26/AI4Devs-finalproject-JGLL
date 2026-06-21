@@ -70,41 +70,43 @@ class GetMyTripsUseCaseTest {
     )
 
     @Test
-    fun `maps bookings to enriched summaries with pagination`() = runBlocking {
-        coEvery {
-            bookingRepository.findByGuestIdAndCategory(eq(guestId), eq(TripCategory.UPCOMING), any(), any<Pageable>())
-        } returns PageImpl(listOf(booking), PageRequest.of(0, 10), 1L)
-        coEvery { propertyRepository.findById(propertyId) } returns property
+    fun `maps bookings to enriched summaries with pagination`() {
+        runBlocking {
+            coEvery {
+                bookingRepository.findByGuestIdAndCategory(eq(guestId), eq(TripCategory.UPCOMING), any(), any<Pageable>())
+            } returns PageImpl(listOf(booking), PageRequest.of(0, 10), 1L)
+            coEvery { propertyRepository.findById(propertyId) } returns property
 
-        val result = useCase.execute(guestId, TripCategory.UPCOMING, page = 1, size = 10)
+            val result = useCase.execute(guestId, TripCategory.UPCOMING, page = 1, size = 10)
 
-        result.page shouldBe 1
-        result.size shouldBe 10
-        result.totalResults shouldBe 1L
-        result.totalPages shouldBe 1
-        val summary = result.bookings.single()
-        summary.referenceNumber shouldBe "BK-20300101-ABC123"
-        summary.propertyTitle shouldBe "Cosy Eixample Apartment"
-        summary.propertyPhotoUrl shouldBe "https://img/1.jpg"
-        summary.city shouldBe "Barcelona"
-        summary.status shouldBe BookingStatus.CONFIRMED
-        summary.totalEur.compareTo(BigDecimal("386.00")) shouldBe 0
-        Unit
+            result.page shouldBe 1
+            result.size shouldBe 10
+            result.totalResults shouldBe 1L
+            result.totalPages shouldBe 1
+            val summary = result.bookings.single()
+            summary.referenceNumber shouldBe "BK-20300101-ABC123"
+            summary.propertyTitle shouldBe "Cosy Eixample Apartment"
+            summary.propertyPhotoUrl shouldBe "https://img/1.jpg"
+            summary.city shouldBe "Barcelona"
+            summary.status shouldBe BookingStatus.CONFIRMED
+            summary.totalEur.compareTo(BigDecimal("386.00")) shouldBe 0
+        }
     }
 
     @Test
-    fun `tolerates a missing property with blank enrichment`() = runBlocking {
-        coEvery {
-            bookingRepository.findByGuestIdAndCategory(eq(guestId), any(), any(), any<Pageable>())
-        } returns PageImpl(listOf(booking), PageRequest.of(0, 10), 1L)
-        coEvery { propertyRepository.findById(propertyId) } returns null
+    fun `tolerates a missing property with blank enrichment`() {
+        runBlocking {
+            coEvery {
+                bookingRepository.findByGuestIdAndCategory(eq(guestId), any(), any(), any<Pageable>())
+            } returns PageImpl(listOf(booking), PageRequest.of(0, 10), 1L)
+            coEvery { propertyRepository.findById(propertyId) } returns null
 
-        val result = useCase.execute(guestId, TripCategory.ALL, page = 1, size = 10)
+            val result = useCase.execute(guestId, TripCategory.ALL, page = 1, size = 10)
 
-        val summary = result.bookings.single()
-        summary.propertyTitle shouldBe ""
-        summary.propertyPhotoUrl shouldBe ""
-        summary.city shouldBe ""
-        Unit
+            val summary = result.bookings.single()
+            summary.propertyTitle shouldBe ""
+            summary.propertyPhotoUrl shouldBe ""
+            summary.city shouldBe ""
+        }
     }
 }

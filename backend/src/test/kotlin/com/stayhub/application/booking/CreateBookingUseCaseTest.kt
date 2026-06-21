@@ -100,77 +100,47 @@ class CreateBookingUseCaseTest {
     }
 
     @Test
-    fun `happy path returns CreateBookingResult with correct price breakdown`() = runBlocking {
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        stubAvailabilityFree()
-        stubHoldCreation()
-        stubPaymentIntent()
-        stubBookingSave()
+    fun `happy path returns CreateBookingResult with correct price breakdown`() {
+        runBlocking {
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            stubAvailabilityFree()
+            stubHoldCreation()
+            stubPaymentIntent()
+            stubBookingSave()
 
-        val result = useCase.execute(
-            CreateBookingCommand(
-                propertyId = propertyId,
-                guestId = guestId,
-                checkIn = checkIn,
-                checkOut = checkOut,
-                guestCount = 2,
+            val result = useCase.execute(
+                CreateBookingCommand(
+                    propertyId = propertyId,
+                    guestId = guestId,
+                    checkIn = checkIn,
+                    checkOut = checkOut,
+                    guestCount = 2,
+                )
             )
-        )
 
-        // Price: 100 * 3 + 50 + (300 * 0.12) + 0 = 300 + 50 + 36 + 0 = 386
-        result.priceBreakdown.nights shouldBe 3
-        result.priceBreakdown.nightlyRateEur shouldBe 100.0
-        result.priceBreakdown.subtotalEur shouldBe (300.0 plusOrMinus 0.01)
-        result.priceBreakdown.cleaningFeeEur shouldBe 50.0
-        result.priceBreakdown.serviceFeeEur shouldBe (36.0 plusOrMinus 0.01)
-        result.priceBreakdown.taxEur shouldBe 0.0
-        result.priceBreakdown.totalEur shouldBe (386.0 plusOrMinus 0.01)
-        result.stripeClientSecret shouldStartWith "pi_stub_"
-        result.referenceNumber shouldStartWith "BK-"
+            // Price: 100 * 3 + 50 + (300 * 0.12) + 0 = 300 + 50 + 36 + 0 = 386
+            result.priceBreakdown.nights shouldBe 3
+            result.priceBreakdown.nightlyRateEur shouldBe 100.0
+            result.priceBreakdown.subtotalEur shouldBe (300.0 plusOrMinus 0.01)
+            result.priceBreakdown.cleaningFeeEur shouldBe 50.0
+            result.priceBreakdown.serviceFeeEur shouldBe (36.0 plusOrMinus 0.01)
+            result.priceBreakdown.taxEur shouldBe 0.0
+            result.priceBreakdown.totalEur shouldBe (386.0 plusOrMinus 0.01)
+            result.stripeClientSecret shouldStartWith "pi_stub_"
+            result.referenceNumber shouldStartWith "BK-"
+        }
     }
 
     @Test
-    fun `happy path persists booking with PENDING status`() = runBlocking {
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        stubAvailabilityFree()
-        stubHoldCreation()
-        stubPaymentIntent()
-        val saved = slot<Booking>()
-        coEvery { bookingRepository.save(capture(saved)) } answers { saved.captured }
+    fun `happy path persists booking with PENDING status`() {
+        runBlocking {
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            stubAvailabilityFree()
+            stubHoldCreation()
+            stubPaymentIntent()
+            val saved = slot<Booking>()
+            coEvery { bookingRepository.save(capture(saved)) } answers { saved.captured }
 
-        useCase.execute(
-            CreateBookingCommand(
-                propertyId = propertyId,
-                guestId = guestId,
-                checkIn = checkIn,
-                checkOut = checkOut,
-                guestCount = 2,
-            )
-        )
-
-        saved.captured.status shouldBe BookingStatus.PENDING
-        saved.captured.guestId shouldBe guestId
-        saved.captured.propertyId shouldBe propertyId
-        saved.captured.guestCount shouldBe 2
-        saved.captured.nights shouldBe 3
-    }
-
-    @Test
-    fun `throws DatesUnavailableException when active hold exists`() = runBlocking {
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        coEvery {
-            holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut)
-        } returns AvailabilityHold(
-            id = UUID.randomUUID(),
-            propertyId = propertyId,
-            guestId = UUID.randomUUID(),
-            checkIn = checkIn,
-            checkOut = checkOut,
-            heldUntil = Instant.now().plusSeconds(120),
-            createdAt = Instant.now(),
-        )
-
-        shouldThrow<DatesUnavailableException> {
             useCase.execute(
                 CreateBookingCommand(
                     propertyId = propertyId,
@@ -180,45 +150,134 @@ class CreateBookingUseCaseTest {
                     guestCount = 2,
                 )
             )
-        }
 
-        coVerify(exactly = 0) { holdRepository.createHold(any(), any(), any(), any()) }
-        coVerify(exactly = 0) { bookingRepository.save(any()) }
+            saved.captured.status shouldBe BookingStatus.PENDING
+            saved.captured.guestId shouldBe guestId
+            saved.captured.propertyId shouldBe propertyId
+            saved.captured.guestCount shouldBe 2
+            saved.captured.nights shouldBe 3
+        }
     }
 
     @Test
-    fun `throws DatesUnavailableException when overlapping non-cancelled booking exists`() = runBlocking {
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        coEvery {
-            holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut)
-        } returns null
-        coEvery {
-            bookingRepository.findByPropertyAndDates(propertyId, checkIn, checkOut)
-        } returns listOf(
-            Booking(
+    fun `throws DatesUnavailableException when active hold exists`() {
+        runBlocking {
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            coEvery {
+                holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut)
+            } returns AvailabilityHold(
                 id = UUID.randomUUID(),
                 propertyId = propertyId,
                 guestId = UUID.randomUUID(),
-                referenceNumber = "BK-OLD",
                 checkIn = checkIn,
                 checkOut = checkOut,
-                guestCount = 2,
-                nights = 3,
-                nightlyRateEur = BigDecimal("100.00"),
-                cleaningFeeEur = BigDecimal("50.00"),
-                serviceFeeEur = BigDecimal("36.00"),
-                taxEur = BigDecimal("0.00"),
-                totalEur = BigDecimal("386.00"),
-                status = BookingStatus.CONFIRMED,
-                stripePaymentIntentId = "pi_old",
-                cancellationReason = null,
-                cancelledAt = null,
+                heldUntil = Instant.now().plusSeconds(120),
                 createdAt = Instant.now(),
-                updatedAt = Instant.now(),
             )
-        )
 
-        shouldThrow<DatesUnavailableException> {
+            shouldThrow<DatesUnavailableException> {
+                useCase.execute(
+                    CreateBookingCommand(
+                        propertyId = propertyId,
+                        guestId = guestId,
+                        checkIn = checkIn,
+                        checkOut = checkOut,
+                        guestCount = 2,
+                    )
+                )
+            }
+
+            coVerify(exactly = 0) { holdRepository.createHold(any(), any(), any(), any()) }
+            coVerify(exactly = 0) { bookingRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `throws DatesUnavailableException when overlapping non-cancelled booking exists`() {
+        runBlocking {
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            coEvery {
+                holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut)
+            } returns null
+            coEvery {
+                bookingRepository.findByPropertyAndDates(propertyId, checkIn, checkOut)
+            } returns listOf(
+                Booking(
+                    id = UUID.randomUUID(),
+                    propertyId = propertyId,
+                    guestId = UUID.randomUUID(),
+                    referenceNumber = "BK-OLD",
+                    checkIn = checkIn,
+                    checkOut = checkOut,
+                    guestCount = 2,
+                    nights = 3,
+                    nightlyRateEur = BigDecimal("100.00"),
+                    cleaningFeeEur = BigDecimal("50.00"),
+                    serviceFeeEur = BigDecimal("36.00"),
+                    taxEur = BigDecimal("0.00"),
+                    totalEur = BigDecimal("386.00"),
+                    status = BookingStatus.CONFIRMED,
+                    stripePaymentIntentId = "pi_old",
+                    cancellationReason = null,
+                    cancelledAt = null,
+                    createdAt = Instant.now(),
+                    updatedAt = Instant.now(),
+                )
+            )
+
+            shouldThrow<DatesUnavailableException> {
+                useCase.execute(
+                    CreateBookingCommand(
+                        propertyId = propertyId,
+                        guestId = guestId,
+                        checkIn = checkIn,
+                        checkOut = checkOut,
+                        guestCount = 2,
+                    )
+                )
+            }
+
+            coVerify(exactly = 0) { bookingRepository.save(any()) }
+        }
+    }
+
+    @Test
+    fun `cancelled overlapping bookings do NOT block creation`() {
+        runBlocking {
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            coEvery {
+                holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut)
+            } returns null
+            coEvery {
+                bookingRepository.findByPropertyAndDates(propertyId, checkIn, checkOut)
+            } returns listOf(
+                Booking(
+                    id = UUID.randomUUID(),
+                    propertyId = propertyId,
+                    guestId = UUID.randomUUID(),
+                    referenceNumber = "BK-CANCEL",
+                    checkIn = checkIn,
+                    checkOut = checkOut,
+                    guestCount = 2,
+                    nights = 3,
+                    nightlyRateEur = BigDecimal("100.00"),
+                    cleaningFeeEur = BigDecimal("50.00"),
+                    serviceFeeEur = BigDecimal("36.00"),
+                    taxEur = BigDecimal("0.00"),
+                    totalEur = BigDecimal("386.00"),
+                    status = BookingStatus.CANCELLED,
+                    stripePaymentIntentId = "pi_cancelled",
+                    cancellationReason = "test",
+                    cancelledAt = Instant.now(),
+                    createdAt = Instant.now(),
+                    updatedAt = Instant.now(),
+                )
+            )
+            stubHoldCreation()
+            stubPaymentIntent()
+            stubBookingSave()
+
+            // Should NOT throw
             useCase.execute(
                 CreateBookingCommand(
                     propertyId = propertyId,
@@ -228,65 +287,42 @@ class CreateBookingUseCaseTest {
                     guestCount = 2,
                 )
             )
+
+            coVerify(exactly = 1) { bookingRepository.save(any()) }
         }
-
-        coVerify(exactly = 0) { bookingRepository.save(any()) }
     }
 
     @Test
-    fun `cancelled overlapping bookings do NOT block creation`() = runBlocking {
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        coEvery {
-            holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut)
-        } returns null
-        coEvery {
-            bookingRepository.findByPropertyAndDates(propertyId, checkIn, checkOut)
-        } returns listOf(
-            Booking(
-                id = UUID.randomUUID(),
-                propertyId = propertyId,
-                guestId = UUID.randomUUID(),
-                referenceNumber = "BK-CANCEL",
-                checkIn = checkIn,
-                checkOut = checkOut,
-                guestCount = 2,
-                nights = 3,
-                nightlyRateEur = BigDecimal("100.00"),
-                cleaningFeeEur = BigDecimal("50.00"),
-                serviceFeeEur = BigDecimal("36.00"),
-                taxEur = BigDecimal("0.00"),
-                totalEur = BigDecimal("386.00"),
-                status = BookingStatus.CANCELLED,
-                stripePaymentIntentId = "pi_cancelled",
-                cancellationReason = "test",
-                cancelledAt = Instant.now(),
-                createdAt = Instant.now(),
-                updatedAt = Instant.now(),
-            )
-        )
-        stubHoldCreation()
-        stubPaymentIntent()
-        stubBookingSave()
+    fun `throws NotFoundException when property does not exist`() {
+        runBlocking {
+            coEvery { propertyRepository.findById(propertyId) } returns null
 
-        // Should NOT throw
-        useCase.execute(
-            CreateBookingCommand(
-                propertyId = propertyId,
-                guestId = guestId,
-                checkIn = checkIn,
-                checkOut = checkOut,
-                guestCount = 2,
-            )
-        )
+            shouldThrow<NotFoundException> {
+                useCase.execute(
+                    CreateBookingCommand(
+                        propertyId = propertyId,
+                        guestId = guestId,
+                        checkIn = checkIn,
+                        checkOut = checkOut,
+                        guestCount = 2,
+                    )
+                )
+            }
 
-        coVerify(exactly = 1) { bookingRepository.save(any()) }
+            coVerify(exactly = 0) { holdRepository.createHold(any(), any(), any(), any()) }
+            coVerify(exactly = 0) { bookingRepository.save(any()) }
+        }
     }
 
     @Test
-    fun `throws NotFoundException when property does not exist`() = runBlocking {
-        coEvery { propertyRepository.findById(propertyId) } returns null
+    fun `creates 10 minute hold and Stripe PaymentIntent before persisting booking`() {
+        runBlocking {
+            coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
+            stubAvailabilityFree()
+            stubHoldCreation()
+            stubPaymentIntent()
+            stubBookingSave()
 
-        shouldThrow<NotFoundException> {
             useCase.execute(
                 CreateBookingCommand(
                     propertyId = propertyId,
@@ -296,32 +332,10 @@ class CreateBookingUseCaseTest {
                     guestCount = 2,
                 )
             )
+
+            coVerify(exactly = 1) { holdRepository.createHold(propertyId, guestId, checkIn, checkOut) }
+            coVerify(exactly = 1) { paymentService.createPaymentIntent(any(), any()) }
+            coVerify(exactly = 1) { bookingRepository.save(any()) }
         }
-
-        coVerify(exactly = 0) { holdRepository.createHold(any(), any(), any(), any()) }
-        coVerify(exactly = 0) { bookingRepository.save(any()) }
-    }
-
-    @Test
-    fun `creates 10 minute hold and Stripe PaymentIntent before persisting booking`() = runBlocking {
-        coEvery { propertyRepository.findById(propertyId) } returns sampleProperty
-        stubAvailabilityFree()
-        stubHoldCreation()
-        stubPaymentIntent()
-        stubBookingSave()
-
-        useCase.execute(
-            CreateBookingCommand(
-                propertyId = propertyId,
-                guestId = guestId,
-                checkIn = checkIn,
-                checkOut = checkOut,
-                guestCount = 2,
-            )
-        )
-
-        coVerify(exactly = 1) { holdRepository.createHold(propertyId, guestId, checkIn, checkOut) }
-        coVerify(exactly = 1) { paymentService.createPaymentIntent(any(), any()) }
-        coVerify(exactly = 1) { bookingRepository.save(any()) }
     }
 }
