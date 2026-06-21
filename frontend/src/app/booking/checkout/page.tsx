@@ -43,7 +43,6 @@ function CheckoutPageContent() {
 
   // ── State ───────────────────────────────────────────────────────────────
   const [booking, setBooking] = useState<CreateBookingResponse | null>(null);
-  const [holdExpired, setHoldExpired] = useState(false);
   const [pageError, setPageError] = useState<string | null>(null);
 
   // ── Queries / mutations ─────────────────────────────────────────────────
@@ -154,29 +153,6 @@ function CheckoutPageContent() {
     );
   }
 
-  // ── Hold expired state ───────────────────────────────────────────────────
-  if (holdExpired) {
-    return (
-      <div
-        className="max-w-4xl mx-auto px-4 py-8 text-center"
-        data-testid="checkout-hold-expired"
-      >
-        <div className="mb-4 text-5xl">⏰</div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Hold expired</h1>
-        <p className="text-gray-500 mb-6">
-          Your hold on this property has expired. Please search again to check current
-          availability.
-        </p>
-        <Link
-          href="/"
-          className="inline-block py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
-        >
-          Back to search
-        </Link>
-      </div>
-    );
-  }
-
   // ── Error state ──────────────────────────────────────────────────────────
   if (pageError) {
     return (
@@ -253,7 +229,7 @@ function CheckoutPageContent() {
           guestCount={guestCount}
           priceBreakdown={booking.price_breakdown}
           holdExpiresAt={booking.hold_expires_at}
-          onHoldExpired={() => setHoldExpired(true)}
+          onHoldExpired={() => router.replace(`/property/${propertyId}?expired=true`)}
         />
 
         {/* Right: payment form */}
