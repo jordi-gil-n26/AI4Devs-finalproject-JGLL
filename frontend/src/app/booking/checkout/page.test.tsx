@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // --------------------------------------------------------------------------
@@ -8,6 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const mockPush = vi.fn();
 const mockBack = vi.fn();
+const mockReplace = vi.fn();
 const mockSearchParams = new URLSearchParams({
   propertyId: 'prop-uuid-1',
   checkIn: '2026-07-10',
@@ -16,7 +17,7 @@ const mockSearchParams = new URLSearchParams({
 });
 
 vi.mock('next/navigation', () => ({
-  useRouter: () => ({ push: mockPush, back: mockBack }),
+  useRouter: () => ({ push: mockPush, back: mockBack, replace: mockReplace }),
   useSearchParams: () => mockSearchParams,
 }));
 
@@ -49,19 +50,10 @@ import { usePropertyDetails } from '@/services/propertyService';
 // --------------------------------------------------------------------------
 
 vi.mock('@/components/booking/BookingSummary', () => ({
-  BookingSummary: ({
-    priceBreakdown,
-    onHoldExpired,
-  }: {
-    priceBreakdown: { total_eur: number };
-    onHoldExpired: () => void;
-  }) =>
-    React.createElement(
-      'div',
-      { 'data-testid': 'booking-summary' },
-      `Total: €${priceBreakdown.total_eur.toFixed(2)}`,
-      React.createElement('button', { onClick: onHoldExpired, 'data-testid': 'trigger-expired' }, 'expire'),
-    ),
+  BookingSummary: ({ onHoldExpired }: { onHoldExpired: () => void }) => {
+    React.useEffect(() => { onHoldExpired(); }, [onHoldExpired]);
+    return <div data-testid="booking-summary-stub" />;
+  },
 }));
 
 vi.mock('@/components/booking/PaymentForm', () => ({
@@ -234,11 +226,11 @@ describe('CheckoutPage', () => {
     await waitFor(() =>
       expect(screen.getByTestId('checkout-page')).toBeInTheDocument(),
     );
-    expect(screen.getByTestId('booking-summary')).toBeInTheDocument();
+    expect(screen.getByTestId('booking-summary-stub')).toBeInTheDocument();
     expect(screen.getByTestId('payment-form')).toBeInTheDocument();
   });
 
-  it('shows hold-expired state when onHoldExpired is called', async () => {
+  it('redirects to the property page with ?expired=true when the hold expires', async () => {
     (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
       mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
         opts.onSuccess(mockBookingResponse);
@@ -247,16 +239,9 @@ describe('CheckoutPage', () => {
     });
 
     render(<CheckoutPage />);
-
-    await waitFor(() => expect(screen.getByTestId('checkout-page')).toBeInTheDocument());
-
-    // Simulate hold expiry via the BookingSummary mock button
-    act(() => {
-      screen.getByTestId('trigger-expired').click();
-    });
-
-    expect(screen.getByTestId('checkout-hold-expired')).toBeInTheDocument();
-    expect(screen.getByText(/back to search/i)).toBeInTheDocument();
+    await waitFor(() =>
+      expect(mockReplace).toHaveBeenCalledWith('/property/prop-uuid-1?expired=true'),
+    );
   });
 
   it('navigates to confirmation page on successful payment', async () => {

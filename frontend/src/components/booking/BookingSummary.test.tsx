@@ -340,4 +340,38 @@ describe('BookingSummary', () => {
     // No img element — placeholder div rendered instead
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
+
+  function isoIn(seconds: number): string {
+    return new Date(Date.now() + seconds * 1000).toISOString();
+  }
+
+  it('marks the countdown urgent (red) when under 2 minutes remain', () => {
+    render(
+      <BookingSummary
+        property={mockProperty}
+        checkIn="2030-06-10"
+        checkOut="2030-06-13"
+        guestCount={2}
+        priceBreakdown={mockPriceBreakdown}
+        holdExpiresAt={isoIn(60)}
+        onHoldExpired={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('hold-countdown')).toHaveAttribute('data-urgent', 'true');
+  });
+
+  it('countdown is not urgent when more than 2 minutes remain', () => {
+    render(
+      <BookingSummary
+        property={mockProperty}
+        checkIn="2030-06-10"
+        checkOut="2030-06-13"
+        guestCount={2}
+        priceBreakdown={mockPriceBreakdown}
+        holdExpiresAt={isoIn(300)}
+        onHoldExpired={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId('hold-countdown')).toHaveAttribute('data-urgent', 'false');
+  });
 });

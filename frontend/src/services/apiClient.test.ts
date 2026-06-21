@@ -4,6 +4,7 @@ import { AxiosHeaders } from 'axios';
 import {
   apiClient,
   AUTH_TOKEN_STORAGE_KEY,
+  maybeRedirectOnUnauthorized,
   NormalizedApiError,
   normalizeError,
   setAuthTokenGetter,
@@ -123,5 +124,56 @@ describe('default auth token getter (localStorage-backed)', () => {
 
   it('exposes the storage key the app reads tokens from', () => {
     expect(AUTH_TOKEN_STORAGE_KEY).toBe('auth_token');
+  });
+});
+
+describe('maybeRedirectOnUnauthorized', () => {
+  const realLocation = window.location;
+
+  function stubLocation(pathname: string, search = '') {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      value: { pathname, search, assign: vi.fn() },
+    });
+  }
+
+  afterEach(() => {
+    window.localStorage.clear();
+    Object.defineProperty(window, 'location', { configurable: true, value: realLocation });
+    vi.restoreAllMocks();
+  });
+
+  function axios401(url: string) {
+    return { isAxiosError: true, response: { status: 401 }, config: { url } };
+  }
+
+  it('clears the stale token and redirects to /login with the current path on a 401 from a non-auth endpoint', () => {
+    stubLocation('/booking/checkout', '?propertyId=p1');
+    window.localStorage.setItem('auth_token', 'stale-token');
+
+    maybeRedirectOnUnauthorized(axios401('/api/v1/bookings'));
+
+    expect(window.localStorage.getItem('auth_token')).toBeNull();
+    expect(window.location.assign).toHaveBeenCalledWith(
+      '/login?redirect=' + encodeURIComponent('/booking/checkout?propertyId=p1'),
+    );
+  });
+
+  it('does NOT redirect on a 401 from the login endpoint', () => {
+    stubLocation('/login');
+    maybeRedirectOnUnauthorized(axios401('/api/v1/auth/login'));
+    expect(window.location.assign).not.toHaveBeenCalled();
+  });
+
+  it('does NOT redirect when already on /login', () => {
+    stubLocation('/login', '?redirect=%2Ftrips');
+    maybeRedirectOnUnauthorized(axios401('/api/v1/bookings'));
+    expect(window.location.assign).not.toHaveBeenCalled();
+  });
+
+  it('ignores non-401 errors', () => {
+    stubLocation('/trips');
+    maybeRedirectOnUnauthorized({ isAxiosError: true, response: { status: 500 }, config: { url: '/api/v1/bookings/my-trips' } });
+    expect(window.location.assign).not.toHaveBeenCalled();
   });
 });
