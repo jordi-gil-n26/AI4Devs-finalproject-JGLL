@@ -1,9 +1,8 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
 
 /**
- * Whole booking journey, real browser → real frontend → real backend → Postgres.
- * register → search (by location + dates) → open a property → reserve → checkout
- * → pay (E2E stub) → confirmation.
+ * Whole booking + cancellation journeys, real browser → real frontend → real
+ * backend → Postgres.
  *
  * Conventions (see the frontend-e2e-playwright skill):
  *  - navigate via the results list, not the Mapbox map (dummy token);
@@ -11,6 +10,9 @@ import { test, expect } from '@playwright/test';
  *    auto-succeeds), so no real Stripe;
  *  - dates are computed relative to "today" within the seeded availability window
  *    (CURRENT_DATE..+89) and clear of the seed bookings (+10-14, +20-23, +40-45).
+ *
+ * The shared booking flow is a same-file helper (not a cross-file import — that
+ * trips a Playwright TS-loader bug on Node 22).
  */
 
 function isoDate(daysFromNow: number): string {
@@ -19,12 +21,15 @@ function isoDate(daysFromNow: number): string {
   return d.toISOString().slice(0, 10);
 }
 
-test('guest registers, searches, books a property, and reaches confirmation', async ({ page }) => {
+/**
+ * Registers a fresh guest and books + confirms a far-future stay (>48h out, so
+ * cancellation grants a full refund), leaving the page on `/confirmation/{id}`.
+ */
+async function registerAndBookConfirmedStay(page: Page): Promise<void> {
   const email = `e2e-${Date.now()}@example.com`;
-  // 46..85 days out: inside the +89-day seeded availability window and entirely
-  // clear of the seed bookings (which end at +45). A fresh DB (CI) always has
-  // these free; the wide per-run offset also reduces collisions when re-running
-  // against a persistent local stack.
+  // 46..85 days out: inside the +89-day seeded availability window and clear of
+  // the seed bookings (which end at +45). A wide per-run offset avoids collisions
+  // when re-running against a persistent local stack; CI uses a fresh DB.
   const offset = 46 + (Date.now() % 40);
   const checkIn = isoDate(offset);
   const checkOut = isoDate(offset + 3);
@@ -54,8 +59,7 @@ test('guest registers, searches, books a property, and reaches confirmation', as
   await expect(page.getByTestId('property-page')).toBeVisible();
   await expect(page).toHaveURL(new RegExp(`/property/${propertyId}`));
 
-  // 4. Provide dates via the URL (robust vs. clicking absolute calendar days) so
-  //    Reserve enables, then reserve → checkout.
+  // 4. Provide dates via the URL (robust vs. clicking calendar days) → reserve
   await page.goto(`/property/${propertyId}?check_in=${checkIn}&check_out=${checkOut}`);
   const reserve = page.getByTestId('reserve-button');
   await expect(reserve).toBeEnabled();
@@ -64,8 +68,41 @@ test('guest registers, searches, books a property, and reaches confirmation', as
   // 5. Checkout creates the booking + hold; pay via the E2E stub → confirmation
   await expect(page.getByTestId('pay-button')).toBeVisible();
   await page.getByTestId('pay-button').click();
-
   await expect(page).toHaveURL(/\/confirmation\/[0-9a-f-]+$/);
+}
+
+test('guest registers, searches, books a property, and reaches confirmation', async ({ page }) => {
+  await registerAndBookConfirmedStay(page);
+
   await expect(page.getByRole('heading', { name: 'Booking Confirmed!' })).toBeVisible();
   await expect(page.getByText(/^BK-/)).toBeVisible(); // reference number
+});
+
+test('guest cancels a confirmed booking from My Trips and sees it cancelled', async ({ page }) => {
+  await registerAndBookConfirmedStay(page);
+
+  // Confirmation → My Trips
+  await page.getByTestId('view-trips-button').click();
+  await expect(page).toHaveURL(/\/trips(\?|$)/);
+
+  // Fresh guest has exactly one trip — open it.
+  const card = page.getByTestId('trip-card').first();
+  await expect(card).toBeVisible();
+  await card.click();
+  await expect(page).toHaveURL(/\/trips\/[0-9a-f-]+$/);
+
+  // Detail shows a confirmed, cancellable booking.
+  await expect(page.getByText('confirmed').first()).toBeVisible();
+  const openCancel = page.getByTestId('open-cancel-button');
+  await expect(openCancel).toBeVisible();
+  await openCancel.click();
+
+  // Modal shows the refund (far-future → full refund) → confirm.
+  await expect(page.getByTestId('cancellation-modal')).toBeVisible();
+  await expect(page.getByTestId('refund-amount')).toBeVisible();
+  await page.getByTestId('confirm-cancel-button').click();
+
+  // Cancellation persisted + refetched: status is cancelled, cancel CTA is gone.
+  await expect(page.getByText('cancelled').first()).toBeVisible();
+  await expect(page.getByTestId('open-cancel-button')).toHaveCount(0);
 });
