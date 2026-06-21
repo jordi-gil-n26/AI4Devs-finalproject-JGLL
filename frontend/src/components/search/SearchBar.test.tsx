@@ -5,8 +5,11 @@
  * Uses unit test patterns to verify component structure and callback invocation.
  */
 
+import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
 import type { SearchBarProps, SearchParams } from './SearchBar';
+import { SearchBar } from './SearchBar';
 
 describe('SearchBar Component', () => {
   it('should export SearchBar component', () => {
@@ -137,5 +140,60 @@ describe('SearchBar Component', () => {
       expect(mockParams.guests).toBe(guestCount);
       expect(mockParams.guests).toBeGreaterThanOrEqual(1);
     });
+  });
+
+  // Local yyyy-mm-dd for "today" (mirrors the component's computation).
+  function todayLocalIso(): string {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function futureIso(days: number): string {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  it('sets the check-in min attribute to today', () => {
+    render(<SearchBar onSearch={vi.fn()} />);
+    expect(screen.getByLabelText('Check-in')).toHaveAttribute('min', todayLocalIso());
+  });
+
+  it('blocks submit and shows an inline error for a past check-in', () => {
+    const onSearch = vi.fn();
+    render(<SearchBar onSearch={onSearch} />);
+    fireEvent.change(screen.getByLabelText('Check-in'), { target: { value: '2020-01-01' } });
+    fireEvent.blur(screen.getByLabelText('Check-in'));
+    expect(screen.getByTestId('search-error')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('search-submit'));
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  it('blocks submit when check-out is not after check-in', () => {
+    const onSearch = vi.fn();
+    render(<SearchBar onSearch={onSearch} />);
+    const ci = futureIso(5);
+    fireEvent.change(screen.getByLabelText('Check-in'), { target: { value: ci } });
+    fireEvent.change(screen.getByLabelText('Check-out'), { target: { value: ci } });
+    fireEvent.click(screen.getByTestId('search-submit'));
+    expect(screen.getByTestId('search-error')).toBeInTheDocument();
+    expect(onSearch).not.toHaveBeenCalled();
+  });
+
+  it('submits a valid future range with no error', () => {
+    const onSearch = vi.fn();
+    render(<SearchBar onSearch={onSearch} />);
+    fireEvent.change(screen.getByLabelText('Check-in'), { target: { value: futureIso(5) } });
+    fireEvent.change(screen.getByLabelText('Check-out'), { target: { value: futureIso(8) } });
+    fireEvent.click(screen.getByTestId('search-submit'));
+    expect(onSearch).toHaveBeenCalledTimes(1);
+    expect(screen.queryByTestId('search-error')).not.toBeInTheDocument();
+  });
+
+  it('clears check-out when check-in moves to or past it', () => {
+    render(<SearchBar onSearch={vi.fn()} />);
+    fireEvent.change(screen.getByLabelText('Check-in'), { target: { value: futureIso(5) } });
+    fireEvent.change(screen.getByLabelText('Check-out'), { target: { value: futureIso(8) } });
+    fireEvent.change(screen.getByLabelText('Check-in'), { target: { value: futureIso(10) } });
+    expect(screen.getByLabelText('Check-out')).toHaveValue('');
   });
 });

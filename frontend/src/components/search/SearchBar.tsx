@@ -38,6 +38,19 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
   const [guests, setGuests] = useState(1);
+  const [error, setError] = useState<string | null>(null);
+
+  // Local yyyy-mm-dd "today" — used to disable past check-in dates.
+  const todayIso = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  })();
+
+  const validateDates = (ci: string, co: string): string | null => {
+    if (ci && ci < todayIso) return "Check-in date can't be in the past";
+    if (ci && co && co <= ci) return 'Check-out date must be after check-in date';
+    return null;
+  };
 
   /**
    * Handles location input change
@@ -50,7 +63,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
    * Handles check-in date change
    */
   const handleCheckInChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setCheckInDate(e.target.value);
+    const value = e.target.value;
+    setCheckInDate(value);
+    if (checkOutDate && value && checkOutDate <= value) {
+      setCheckOutDate('');
+    }
+    setError(null);
   };
 
   /**
@@ -58,6 +76,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
    */
   const handleCheckOutChange = (e: ChangeEvent<HTMLInputElement>) => {
     setCheckOutDate(e.target.value);
+    setError(null);
   };
 
   /**
@@ -80,9 +99,9 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Validate date range: check-out must be after check-in
-    if (checkInDate && checkOutDate && checkInDate >= checkOutDate) {
-      alert('Check-out date must be after check-in date');
+    const validationError = validateDates(checkInDate, checkOutDate);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
@@ -126,8 +145,10 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           <input
             id="check-in"
             type="date"
+            min={todayIso}
             value={checkInDate}
             onChange={handleCheckInChange}
+            onBlur={() => setError(validateDates(checkInDate, checkOutDate))}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -143,6 +164,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
             min={checkInDate}
             value={checkOutDate}
             onChange={handleCheckOutChange}
+            onBlur={() => setError(validateDates(checkInDate, checkOutDate))}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
@@ -186,6 +208,12 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
           </div>
         </div>
       </div>
+
+      {error && (
+        <p data-testid="search-error" role="alert" className="mt-3 text-sm text-red-600">
+          {error}
+        </p>
+      )}
 
       {/* Search Button */}
       <div className="mt-6 flex justify-center md:justify-end">
