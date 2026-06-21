@@ -152,11 +152,35 @@ apiClient.interceptors.request.use(
   (error: unknown) => Promise.reject(normalizeError(error)),
 );
 
-// --- Response interceptor: normalize all errors. ---
+// --- Response interceptor: redirect on auth expiry, then normalize errors. ---
 apiClient.interceptors.response.use(
   (response) => response,
-  (error: unknown) => Promise.reject(normalizeError(error)),
+  (error: unknown) => {
+    maybeRedirectOnUnauthorized(error);
+    return Promise.reject(normalizeError(error));
+  },
 );
+
+/**
+ * On a 401 from a non-auth endpoint, clear the stale token and bounce the user
+ * to /login (preserving where they were). Browser-only; skips the auth endpoints
+ * themselves and avoids a loop when already on /login. Exported for testing.
+ */
+export function maybeRedirectOnUnauthorized(error: unknown): void {
+  if (typeof window === 'undefined') return;
+  if (!axios.isAxiosError(error)) return;
+  if (error.response?.status !== 401) return;
+  const url = error.config?.url ?? '';
+  if (url.includes('/api/v1/auth/login') || url.includes('/api/v1/auth/register')) return;
+  if (window.location.pathname.startsWith('/login')) return;
+  try {
+    window.localStorage.removeItem(AUTH_TOKEN_STORAGE_KEY);
+  } catch {
+    // localStorage unavailable — ignore.
+  }
+  const redirect = encodeURIComponent(window.location.pathname + window.location.search);
+  window.location.assign(`/login?redirect=${redirect}`);
+}
 
 /**
  * Convert any thrown/rejected value into a {@link NormalizedApiError}.
