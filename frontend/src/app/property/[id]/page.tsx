@@ -14,6 +14,7 @@ import {
 
 import { usePropertyDetails } from '@/services/propertyService';
 import { usePropertyAvailability } from '@/services/propertyService';
+import { PropertyDetailSkeleton } from '@/components/shared/PropertyDetailSkeleton';
 import { PhotoGallery } from '@/components/property/PhotoGallery';
 import { AmenityList } from '@/components/property/AmenityList';
 import { AvailabilityCalendar } from '@/components/property/AvailabilityCalendar';
@@ -97,17 +98,7 @@ function PropertyDetailPageContent() {
 
   // ─── Loading state ───────────────────────────────────────────────────────
   if (isLoading) {
-    return (
-      <div className="max-w-5xl mx-auto px-4 py-8" data-testid="property-page-loading">
-        <div className="animate-pulse space-y-6">
-          <div className="h-96 bg-gray-200 rounded-xl" />
-          <div className="h-8 bg-gray-200 rounded w-2/3" />
-          <div className="h-4 bg-gray-200 rounded w-1/2" />
-          <div className="h-4 bg-gray-200 rounded w-full" />
-          <div className="h-4 bg-gray-200 rounded w-full" />
-        </div>
-      </div>
-    );
+    return <PropertyDetailSkeleton />;
   }
 
   // ─── Error state ──────────────────────────────────────────────────────────
