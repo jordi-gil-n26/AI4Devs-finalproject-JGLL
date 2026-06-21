@@ -15,9 +15,11 @@ const mockedGet = apiClient.get as unknown as ReturnType<typeof vi.fn>;
 const mockedPost = apiClient.post as unknown as ReturnType<typeof vi.fn>;
 
 function wrapperWith(client: QueryClient) {
-  return ({ children }: { children: ReactNode }) => (
+  const Wrapper = ({ children }: { children: ReactNode }) => (
     <QueryClientProvider client={client}>{children}</QueryClientProvider>
   );
+  Wrapper.displayName = 'QueryWrapper';
+  return Wrapper;
 }
 
 function newClient() {
@@ -49,7 +51,7 @@ describe('tripsService', () => {
 
     const { result, rerender } = renderHook(
       ({ id }: { id?: string }) => useBookingDetail(id),
-      { wrapper: wrapperWith(newClient()), initialProps: { id: undefined } },
+      { wrapper: wrapperWith(newClient()), initialProps: { id: undefined } as { id?: string } },
     );
     expect(mockedGet).not.toHaveBeenCalled();
 
