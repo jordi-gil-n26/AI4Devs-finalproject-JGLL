@@ -54,10 +54,10 @@ describe('TripsPage', () => {
     expect(screen.getByText(/no trips/i)).toBeInTheDocument();
   });
 
-  it('shows a loading state', () => {
+  it('shows trip card skeletons while loading', () => {
     useMyTrips.mockReturnValue({ data: undefined, isLoading: true, error: null });
     render(<TripsPage />);
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.getAllByTestId('trip-card-skeleton').length).toBeGreaterThan(0);
   });
 
   it('navigates to the trip detail when a card is clicked', async () => {

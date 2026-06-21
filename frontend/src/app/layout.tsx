@@ -5,6 +5,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { NavigationBar } from "@/components/shared/NavigationBar";
+import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,7 +32,7 @@ export default function RootLayout({
       >
         <QueryClientProvider client={queryClient}>
           <NavigationBar />
-          {children}
+          <ErrorBoundary>{children}</ErrorBoundary>
         </QueryClientProvider>
       </body>
     </html>

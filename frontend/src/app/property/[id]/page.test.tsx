@@ -118,7 +118,7 @@ describe('PropertyDetailPage', () => {
       });
 
       render(<PropertyDetailPage />, { wrapper: createWrapper() });
-      expect(screen.getByTestId('property-page-loading')).toBeInTheDocument();
+      expect(screen.getByTestId('property-detail-skeleton')).toBeInTheDocument();
     });
   });
 

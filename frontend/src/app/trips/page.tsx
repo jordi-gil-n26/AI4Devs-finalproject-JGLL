@@ -3,6 +3,7 @@
 import React, { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { TripCard } from '@/components/booking/TripCard';
+import { TripCardSkeleton } from '@/components/shared/TripCardSkeleton';
 import { useMyTrips, type TripFilter } from '@/services/tripsService';
 
 const FILTERS: { key: TripFilter; label: string }[] = [
@@ -52,10 +53,13 @@ function TripsPageContent() {
 
       <div className="mt-6">
         {isLoading && (
-          <div className="flex items-center justify-center py-12 text-gray-600">
-            <div className="mr-3 h-6 w-6 animate-spin rounded-full border-b-2 border-blue-600" />
-            Loading your trips…
-          </div>
+          <ul className="flex flex-col gap-3" data-testid="trips-loading">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <li key={i}>
+                <TripCardSkeleton />
+              </li>
+            ))}
+          </ul>
         )}
 
         {error && !isLoading && (
