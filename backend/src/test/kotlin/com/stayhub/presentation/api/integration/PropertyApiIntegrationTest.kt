@@ -1,6 +1,7 @@
 package com.stayhub.presentation.api.integration
 
 import org.junit.jupiter.api.Test
+import org.springframework.http.MediaType
 import java.time.LocalDate
 import java.util.UUID
 
@@ -87,5 +88,42 @@ class PropertyApiIntegrationTest : AbstractApiIntegrationTest() {
         }
             .exchange()
             .expectStatus().isNotFound
+    }
+
+    @Test
+    fun `availability reflects a confirmed booking's nights (#156)`() {
+        val token = registerGuest()
+        val (checkIn, checkOut) = nextStayWindow()
+
+        // Create a booking, then confirm it.
+        val created = http.post().uri("/api/v1/bookings")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue(
+                """{"property_id":"$propertyId","check_in":"$checkIn","check_out":"$checkOut","guest_count":2}""",
+            )
+            .exchange()
+            .expectStatus().isCreated
+            .expectBody(Map::class.java).returnResult().responseBody!!
+        val bookingId = created["booking_id"] as String
+        val paymentIntentId = (created["stripe_client_secret"] as String).removePrefix("pi_stub_secret_")
+
+        http.post().uri("/api/v1/bookings/$bookingId/confirm")
+            .header("Authorization", "Bearer $token")
+            .contentType(MediaType.APPLICATION_JSON)
+            .bodyValue("""{"payment_intent_id":"$paymentIntentId"}""")
+            .exchange()
+            .expectStatus().isOk
+
+        // The availability endpoint must now report the booking's first night as
+        // unavailable (was the bug: the calendar ignored bookings). #156
+        http.get().uri { b ->
+            b.path("/api/v1/properties/$propertyId/availability")
+                .queryParam("from", "$checkIn").queryParam("to", "$checkOut").build()
+        }
+            .exchange()
+            .expectStatus().isOk
+            .expectBody()
+            .jsonPath("$.unavailable_dates[?(@.date=='$checkIn')]").exists()
     }
 }
