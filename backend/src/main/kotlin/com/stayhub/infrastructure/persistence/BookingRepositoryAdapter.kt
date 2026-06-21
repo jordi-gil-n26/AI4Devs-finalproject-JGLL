@@ -3,6 +3,7 @@ package com.stayhub.infrastructure.persistence
 import com.stayhub.domain.booking.Booking
 import com.stayhub.domain.booking.BookingRepository
 import com.stayhub.domain.booking.BookingStatus
+import com.stayhub.domain.booking.TripCategory
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
@@ -135,6 +136,57 @@ class BookingRepositoryAdapter(
             .bind("guestId", guestId)
             .bind("pageSize", pageable.pageSize)
             .bind("offset", pageable.offset)
+            .map { row, _ ->
+                Pair(mapRow(row), row.get("total_count", Long::class.java) ?: 0L)
+            }
+            .all()
+            .collectList()
+            .awaitSingle()
+
+        val bookings = results.map { it.first }
+        val total = results.firstOrNull()?.second ?: 0L
+        return PageImpl(bookings, pageable, total)
+    }
+
+    override suspend fun findByGuestIdAndCategory(
+        guestId: UUID,
+        category: TripCategory,
+        today: LocalDate,
+        pageable: Pageable,
+    ): Page<Booking> {
+        // `filter` fragments are compile-time constants (no user input) — safe to
+        // interpolate. `:today` is only referenced for UPCOMING/PAST, so bind it
+        // conditionally (R2DBC rejects a bound parameter absent from the SQL).
+        val (filter, needsToday) = when (category) {
+            TripCategory.ALL -> "guest_id = :guestId" to false
+            TripCategory.UPCOMING -> "guest_id = :guestId AND status <> 'cancelled' AND check_out >= :today" to true
+            TripCategory.PAST -> "guest_id = :guestId AND status <> 'cancelled' AND check_out < :today" to true
+            TripCategory.CANCELLED -> "guest_id = :guestId AND status = 'cancelled'" to false
+        }
+
+        val sql = """
+            SELECT id, property_id, guest_id, reference_number,
+                   check_in, check_out, guest_count, nights,
+                   nightly_rate_eur, cleaning_fee_eur, service_fee_eur, tax_eur, total_eur,
+                   status, stripe_payment_intent_id,
+                   cancellation_reason, cancelled_at,
+                   created_at, updated_at,
+                   COUNT(*) OVER() AS total_count
+              FROM booking
+             WHERE $filter
+             ORDER BY check_in DESC
+             LIMIT :pageSize OFFSET :offset
+        """.trimIndent()
+
+        var spec = databaseClient.sql(sql)
+            .bind("guestId", guestId)
+            .bind("pageSize", pageable.pageSize)
+            .bind("offset", pageable.offset)
+        if (needsToday) {
+            spec = spec.bind("today", today)
+        }
+
+        val results = spec
             .map { row, _ ->
                 Pair(mapRow(row), row.get("total_count", Long::class.java) ?: 0L)
             }

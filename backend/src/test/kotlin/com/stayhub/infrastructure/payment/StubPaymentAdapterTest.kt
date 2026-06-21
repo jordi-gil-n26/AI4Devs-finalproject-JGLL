@@ -61,4 +61,25 @@ class StubPaymentAdapterTest {
             intent1.id shouldNotBe intent2.id
         }
     }
+
+    @Test
+    fun `refund echoes the requested amount and returns a stub refund id`() {
+        runBlocking {
+            val intent = adapter.createPaymentIntent(BigDecimal("486.00"), UUID.randomUUID())
+
+            val result = adapter.refund(intent.id, BigDecimal("486.00"))
+
+            result.refundId shouldStartWith "re_stub_"
+            result.amountEur.compareTo(BigDecimal("486.00")) shouldBe 0
+        }
+    }
+
+    @Test
+    fun `refund of zero amount is allowed and echoes zero`() {
+        runBlocking {
+            val result = adapter.refund("pi_stub_whatever", BigDecimal.ZERO)
+
+            result.amountEur.compareTo(BigDecimal.ZERO) shouldBe 0
+        }
+    }
 }
