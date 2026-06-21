@@ -7,6 +7,7 @@ import { FilterPanel } from '@/components/search/FilterPanel';
 import { PropertyCard } from '@/components/search/PropertyCard';
 import { MapView } from '@/components/search/MapView';
 import { EmptyState } from '@/components/search/EmptyState';
+import { PropertyCardSkeleton } from '@/components/shared/PropertyCardSkeleton';
 import { usePropertySearch, useGeocode } from '@/services/searchService';
 import type { SearchFilters, PropertySummary } from '@/types';
 
@@ -232,11 +233,10 @@ function SearchPageContent() {
           {/* Center: Results */}
           <main className="md:col-span-2">
             {isLoading && (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
-                  <p className="text-gray-600">Loading properties...</p>
-                </div>
+              <div className="grid grid-cols-1 gap-4" data-testid="property-grid-loading">
+                {Array.from({ length: 8 }).map((_, i) => (
+                  <PropertyCardSkeleton key={i} />
+                ))}
               </div>
             )}
 

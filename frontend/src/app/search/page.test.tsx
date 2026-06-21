@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React, { ReactNode } from 'react';
 import { vi, describe, it, expect } from 'vitest';
 import SearchPage from './page';
+import { usePropertySearch } from '@/services/searchService';
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
@@ -261,5 +262,17 @@ describe('SearchPage', () => {
     // With our mock returning 3 properties, EmptyState should not be visible
     const emptyStateHeading = screen.queryByText(/no properties found/i);
     expect(emptyStateHeading).not.toBeInTheDocument();
+  });
+
+  it('renders PropertyCardSkeleton grid while loading', () => {
+    (usePropertySearch as ReturnType<typeof vi.fn>).mockReturnValueOnce({
+      data: undefined,
+      isLoading: true,
+      error: null,
+    });
+
+    render(<SearchPage />, { wrapper: createWrapper() });
+
+    expect(screen.getAllByTestId('property-card-skeleton').length).toBeGreaterThan(0);
   });
 });
