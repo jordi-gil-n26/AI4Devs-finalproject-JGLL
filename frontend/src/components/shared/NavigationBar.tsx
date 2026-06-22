@@ -35,7 +35,7 @@ export function NavigationBar() {
 
   const linkClass = (href: string) =>
     `text-sm font-medium transition-colors ${
-      isActive(href) ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
+      isActive(href) ? 'text-terracotta' : 'text-taupe hover:text-ink'
     }`;
 
   const authLinks = (onNavigate?: () => void) =>
@@ -54,7 +54,7 @@ export function NavigationBar() {
           type="button"
           onClick={handleLogout}
           data-testid="nav-logout"
-          className="text-left text-sm font-medium text-gray-600 hover:text-gray-900"
+          className="text-left text-sm font-medium text-taupe hover:text-ink"
         >
           Log out
         </button>
@@ -74,7 +74,7 @@ export function NavigationBar() {
           href="/register"
           onClick={onNavigate}
           data-testid="nav-register"
-          className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+          className="rounded-pill bg-terracotta px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
         >
           Sign up
         </Link>
@@ -84,18 +84,18 @@ export function NavigationBar() {
   return (
     <nav
       data-testid="navigation-bar"
-      className="sticky top-0 z-40 border-b border-gray-200 bg-white"
+      className="sticky top-0 z-40 border-b border-border bg-white"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-4">
-          <Link href="/" data-testid="nav-home" className="text-lg font-bold text-blue-600">
+          <Link href="/" data-testid="nav-home" className="font-serif text-xl text-ink tracking-[0.12em] uppercase">
             StayHub
           </Link>
           <Link
             href="/"
             data-testid="nav-search"
             aria-label="Search"
-            className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+            className="flex items-center gap-1 text-sm text-taupe hover:text-ink"
           >
             <Search className="h-4 w-4" aria-hidden />
             <span className="hidden sm:inline">Search</span>
@@ -112,7 +112,7 @@ export function NavigationBar() {
           data-testid="nav-mobile-toggle"
           aria-label="Toggle menu"
           aria-expanded={menuOpen}
-          className="text-gray-600 hover:text-gray-900 md:hidden"
+          className="text-taupe hover:text-ink md:hidden"
         >
           {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
         </button>
@@ -121,7 +121,7 @@ export function NavigationBar() {
       {mounted && menuOpen && (
         <div
           data-testid="nav-mobile-menu"
-          className="flex flex-col items-start gap-3 border-t border-gray-200 px-4 py-3 md:hidden"
+          className="flex flex-col items-start gap-3 border-t border-border px-4 py-3 md:hidden"
         >
           {authLinks(() => setMenuOpen(false))}
         </div>
