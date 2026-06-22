@@ -19,6 +19,13 @@ describe('Button', () => {
     expect(el.className).not.toContain('bg-terracotta');
   });
 
+  it('renders the secondary (neutral) variant', () => {
+    render(<Button variant="secondary">Back to Search</Button>);
+    const el = screen.getByRole('button', { name: 'Back to Search' });
+    expect(el.className).toContain('border-border');
+    expect(el.className).toContain('bg-canvas');
+  });
+
   it('forwards onClick and type', async () => {
     const onClick = vi.fn();
     const user = userEvent.setup();

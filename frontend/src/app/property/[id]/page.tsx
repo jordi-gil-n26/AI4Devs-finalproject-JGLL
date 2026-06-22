@@ -20,6 +20,7 @@ import { AmenityList } from '@/components/property/AmenityList';
 import { AvailabilityCalendar } from '@/components/property/AvailabilityCalendar';
 import { PriceBreakdown } from '@/components/property/PriceBreakdown';
 import { ReviewList } from '@/components/property/ReviewList';
+import { Button } from '@/components/shared/ui';
 
 /**
  * Property Detail Page (T048)
@@ -310,15 +311,15 @@ function PropertyDetailPageContent() {
             />
 
             {/* Reserve CTA */}
-            <button
-              type="button"
+            <Button
+              variant="primary"
+              className="w-full justify-center"
               onClick={handleReserve}
               disabled={!checkIn || !checkOut}
-              className="w-full py-3 px-6 bg-terracotta text-white font-semibold rounded-pill hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               data-testid="reserve-button"
             >
               Reserve
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -330,15 +331,15 @@ function PropertyDetailPageContent() {
           checkIn={checkIn}
           checkOut={checkOut}
         />
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          className="w-full justify-center"
           onClick={handleReserve}
           disabled={!checkIn || !checkOut}
-          className="w-full py-3 px-6 bg-terracotta text-white font-semibold rounded-pill hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           data-testid="reserve-button-mobile"
         >
           Reserve
-        </button>
+        </Button>
       </div>
 
       {/* Reviews */}

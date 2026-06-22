@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Button } from '@/components/shared/ui';
 
 interface CancellationModalProps {
   isOpen: boolean;
@@ -66,24 +67,22 @@ export function CancellationModal({
         )}
 
         <div className="mt-6 flex justify-end gap-3">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
             onClick={onClose}
             disabled={isCancelling}
             data-testid="dismiss-cancel-button"
-            className="rounded-pill border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
           >
             Keep booking
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant="primary"
             onClick={onConfirm}
             disabled={isCancelling}
             data-testid="confirm-cancel-button"
-            className="rounded-pill bg-terracotta px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             {isCancelling ? 'Cancelling…' : 'Confirm cancellation'}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
