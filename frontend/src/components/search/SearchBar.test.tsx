@@ -196,4 +196,9 @@ describe('SearchBar Component', () => {
     fireEvent.change(screen.getByLabelText('Check-in'), { target: { value: futureIso(10) } });
     expect(screen.getByLabelText('Check-out')).toHaveValue('');
   });
+
+  it('styles the submit button with the terracotta accent', () => {
+    render(<SearchBar onSearch={() => {}} />);
+    expect(screen.getByTestId('search-submit').className).toContain('bg-terracotta');
+  });
 });
