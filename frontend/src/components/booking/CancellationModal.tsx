@@ -35,16 +35,16 @@ export function CancellationModal({
       aria-labelledby="cancel-modal-title"
       data-testid="cancellation-modal"
     >
-      <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
-        <h2 id="cancel-modal-title" className="text-lg font-semibold text-gray-900">
+      <div className="w-full max-w-md rounded-card bg-surface p-6 shadow-xl">
+        <h2 id="cancel-modal-title" className="font-serif text-lg text-ink">
           Cancel this booking?
         </h2>
 
-        <p className="mt-3 text-sm text-gray-600">{policy}</p>
+        <p className="mt-3 text-sm text-taupe">{policy}</p>
 
-        <div className="mt-4 rounded-lg bg-gray-50 p-3 text-sm">
+        <div className="mt-4 rounded-card bg-canvas p-3 text-sm">
           {willRefund ? (
-            <p className="text-gray-900">
+            <p className="text-ink">
               You will be refunded{' '}
               <span className="font-bold" data-testid="refund-amount">
                 €{(refundAmountEur ?? 0).toFixed(2)}
@@ -52,7 +52,7 @@ export function CancellationModal({
               .
             </p>
           ) : (
-            <p className="text-gray-900" data-testid="refund-amount">
+            <p className="text-ink" data-testid="refund-amount">
               This cancellation is within 48 hours of check-in, so you will receive{' '}
               <span className="font-bold">no refund</span>.
             </p>
@@ -60,7 +60,7 @@ export function CancellationModal({
         </div>
 
         {error && (
-          <p className="mt-3 text-sm text-red-600" role="alert">
+          <p className="mt-3 text-sm text-terracotta" role="alert">
             {error}
           </p>
         )}
@@ -71,7 +71,7 @@ export function CancellationModal({
             onClick={onClose}
             disabled={isCancelling}
             data-testid="dismiss-cancel-button"
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="rounded-pill border border-border px-4 py-2 text-sm font-semibold text-ink hover:bg-canvas disabled:opacity-50"
           >
             Keep booking
           </button>
@@ -80,7 +80,7 @@ export function CancellationModal({
             onClick={onConfirm}
             disabled={isCancelling}
             data-testid="confirm-cancel-button"
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+            className="rounded-pill bg-terracotta px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
           >
             {isCancelling ? 'Cancelling…' : 'Confirm cancellation'}
           </button>
