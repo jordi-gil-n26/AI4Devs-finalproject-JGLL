@@ -9,7 +9,7 @@ import java.math.BigDecimal
 import java.util.UUID
 
 @Service
-class StubPaymentAdapter : PaymentService {
+class MockPaymentAdapter : PaymentService {
     // In-memory store: paymentIntentId -> status
     // Defaults to SUCCEEDED so the happy path works end-to-end without manual intervention.
     private val intents = mutableMapOf<String, PaymentStatus>()

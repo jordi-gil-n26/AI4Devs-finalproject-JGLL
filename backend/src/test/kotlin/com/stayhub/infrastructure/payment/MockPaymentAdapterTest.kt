@@ -9,9 +9,9 @@ import org.junit.jupiter.api.Test
 import java.math.BigDecimal
 import java.util.UUID
 
-class StubPaymentAdapterTest {
+class MockPaymentAdapterTest {
 
-    private val adapter = StubPaymentAdapter()
+    private val adapter = MockPaymentAdapter()
 
     @Test
     fun `createPaymentIntent returns PaymentIntent with non-blank id and clientSecret`() {
