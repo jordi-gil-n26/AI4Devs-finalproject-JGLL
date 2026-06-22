@@ -18,7 +18,7 @@
   --color-surface: #ffffff;
   --color-canvas: #faf8f5;
 
-  /* Type — mapped to next/font CSS variables set on <html> in layout.tsx */
+  /* Type — mapped to next/font CSS variables set on <body> in layout.tsx */
   --font-serif: var(--font-playfair), Georgia, serif;
   --font-sans: var(--font-inter), system-ui, sans-serif;
 
@@ -30,5 +30,5 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
