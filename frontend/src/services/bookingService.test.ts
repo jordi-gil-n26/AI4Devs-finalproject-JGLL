@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCreateBooking, useConfirmBooking } from './bookingService';
+import { useCreateBooking, useConfirmBooking, useBookingHold } from './bookingService';
 import type { CreateBookingRequest, CreateBookingResponse } from '@/types';
 import type { ConfirmBookingResponse } from '@/types/booking';
 
@@ -128,6 +128,82 @@ describe('useCreateBooking', () => {
     const { result } = renderHook(() => useCreateBooking(), { wrapper: createWrapper() });
     expect(result.current.isPending).toBe(false);
     expect(result.current.isIdle).toBe(true);
+  });
+});
+
+// --------------------------------------------------------------------------
+// useBookingHold
+// --------------------------------------------------------------------------
+
+describe('useBookingHold', () => {
+  const mockRequest: CreateBookingRequest = {
+    property_id: 'prop-uuid-1',
+    check_in: '2026-07-10',
+    check_out: '2026-07-13',
+    guest_count: 2,
+  };
+
+  const mockResponse: CreateBookingResponse = {
+    booking_id: 'booking-uuid-1',
+    reference_number: 'BK-12345678',
+    price_breakdown: {
+      nights: 3,
+      nightly_rate_eur: 120,
+      subtotal_eur: 360,
+      cleaning_fee_eur: 45,
+      service_fee_eur: 48.6,
+      tax_eur: 0,
+      total_eur: 453.6,
+    },
+    stripe_client_secret: 'pi_stub_secret_test',
+    hold_expires_at: '2026-07-10T12:10:00Z',
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('POSTs /api/v1/bookings once and returns the hold data', async () => {
+    (apiClient.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: mockResponse });
+
+    const { result } = renderHook(() => useBookingHold(mockRequest, true), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+
+    expect(apiClient.post).toHaveBeenCalledTimes(1);
+    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/bookings', mockRequest);
+    expect(result.current.data).toEqual(mockResponse);
+  });
+
+  it('does not fire when disabled', () => {
+    (apiClient.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: mockResponse });
+
+    renderHook(() => useBookingHold(mockRequest, false), { wrapper: createWrapper() });
+
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
+  it('does not fire when request is null', () => {
+    (apiClient.post as ReturnType<typeof vi.fn>).mockResolvedValue({ data: mockResponse });
+
+    renderHook(() => useBookingHold(null, true), { wrapper: createWrapper() });
+
+    expect(apiClient.post).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a 409 conflict as an error', async () => {
+    const conflict = Object.assign(new Error('Conflict'), { status: 409 });
+    (apiClient.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(conflict);
+
+    const { result } = renderHook(() => useBookingHold(mockRequest, true), {
+      wrapper: createWrapper(),
+    });
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+
+    expect(result.current.error?.status).toBe(409);
   });
 });
 

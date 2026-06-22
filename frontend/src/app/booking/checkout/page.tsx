@@ -1,18 +1,17 @@
 'use client';
 
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ChevronLeft } from 'lucide-react';
 
-import { useCreateBooking, useConfirmBooking } from '@/services/bookingService';
+import { useBookingHold, useConfirmBooking } from '@/services/bookingService';
 import { usePropertyDetails } from '@/services/propertyService';
 import { BookingSummary } from '@/components/booking/BookingSummary';
 import { PaymentForm } from '@/components/booking/PaymentForm';
 import { HoldCountdownBanner } from '@/components/booking/HoldCountdownBanner';
 import { Label } from '@/components/shared/ui';
 import { formatDateRange } from '@/lib/formatDate';
-import type { CreateBookingResponse } from '@/types';
 import type { ConfirmationSessionData } from '@/types/booking';
 
 /**
@@ -45,52 +44,58 @@ function CheckoutPageContent() {
   const checkOut = searchParams.get('checkOut') ?? '';
   const guestCount = parseInt(searchParams.get('guestCount') ?? '1', 10);
 
-  // ── State ───────────────────────────────────────────────────────────────
-  const [booking, setBooking] = useState<CreateBookingResponse | null>(null);
-  const [pageError, setPageError] = useState<string | null>(null);
+  const hasParams = !!propertyId && !!checkIn && !!checkOut;
 
-  // ── Queries / mutations ─────────────────────────────────────────────────
-  const { data: property, isLoading: propertyLoading } = usePropertyDetails(propertyId);
-  const createBooking = useCreateBooking();
-  const confirmBooking = useConfirmBooking();
+  // ── Auth / params gate ────────────────────────────────────────────────────
+  // 'checking' → effect not yet run; 'ready' → hold may be created;
+  // 'redirecting' → bounced to login (no JWT). Idempotent under Strict-Mode
+  // double-invoke (the redirect is a no-op the second time).
+  const [authState, setAuthState] = useState<'checking' | 'ready' | 'redirecting'>('checking');
 
-  // ── Create booking on mount ─────────────────────────────────────────────
-  // Use a ref to fire only once even in React Strict Mode double-invoke.
-  const hasCreatedRef = useRef(false);
+  // Confirmation-step failures (Stripe → confirm endpoint) are surfaced as a
+  // page error too; the hold itself is created via the query above.
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (hasCreatedRef.current) return;
-    if (!propertyId || !checkIn || !checkOut) {
-      setPageError('Missing booking parameters. Please go back and try again.');
+    if (!hasParams) {
+      // Params error is derived below; nothing to gate.
+      setAuthState('ready');
       return;
     }
-
-    // Auth guard: redirect to login if no JWT is present
     if (!localStorage.getItem('auth_token')) {
       const redirectUrl = `/booking/checkout?${searchParams.toString()}`;
       router.push(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
+      setAuthState('redirecting');
       return;
     }
-
-    hasCreatedRef.current = true;
-
-    createBooking.mutate(
-      { property_id: propertyId, check_in: checkIn, check_out: checkOut, guest_count: guestCount },
-      {
-        onSuccess: (data) => setBooking(data),
-        onError: (err) => {
-          if (err.status === 409) {
-            setPageError('Those dates are no longer available. Please go back and choose different dates.');
-          } else if (err.status === 400) {
-            setPageError(`Validation error: ${err.message}`);
-          } else {
-            setPageError(err.message ?? 'Failed to create booking. Please try again.');
-          }
-        },
-      },
-    );
+    setAuthState('ready');
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // intentionally run once
+
+  // ── Queries / mutations ─────────────────────────────────────────────────
+  const { data: property, isLoading: propertyLoading } = usePropertyDetails(propertyId);
+  const confirmBooking = useConfirmBooking();
+
+  // ── Create booking hold (params-keyed query → Strict-Mode-safe) ──────────
+  const holdReq = hasParams
+    ? { property_id: propertyId, check_in: checkIn, check_out: checkOut, guest_count: guestCount }
+    : null;
+  const {
+    data: booking,
+    error: holdError,
+    isLoading: holdLoading,
+  } = useBookingHold(holdReq, authState === 'ready');
+
+  // ── Derived page error (no state) ─────────────────────────────────────────
+  const pageError: string | null = !hasParams
+    ? 'Missing booking parameters. Please go back and try again.'
+    : holdError
+      ? holdError.status === 409
+        ? 'Those dates are no longer available. Please go back and choose different dates.'
+        : holdError.status === 400
+          ? `Validation error: ${holdError.message}`
+          : (holdError.message ?? 'Failed to create booking. Please try again.')
+      : confirmError;
 
   // ── Stripe success → confirm booking ────────────────────────────────────
   const handlePaymentSuccess = (paymentIntentId: string) => {
@@ -128,7 +133,7 @@ function CheckoutPageContent() {
           router.push(`/confirmation/${bookingId}`);
         },
         onError: (err) => {
-          setPageError(`Payment confirmation failed: ${err.message}`);
+          setConfirmError(`Payment confirmation failed: ${err.message}`);
         },
       },
     );
@@ -140,7 +145,7 @@ function CheckoutPageContent() {
   };
 
   // ── Loading state ────────────────────────────────────────────────────────
-  if (propertyLoading || createBooking.isPending) {
+  if (propertyLoading || authState === 'checking' || (authState === 'ready' && holdLoading)) {
     return (
       <div
         className="max-w-4xl mx-auto px-4 py-8"

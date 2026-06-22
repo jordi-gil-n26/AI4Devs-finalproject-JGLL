@@ -25,15 +25,14 @@ vi.mock('next/navigation', () => ({
 // Mock bookingService
 // --------------------------------------------------------------------------
 
-const mockCreateBookingMutate = vi.fn();
 const mockConfirmBookingMutate = vi.fn();
 
 vi.mock('@/services/bookingService', () => ({
-  useCreateBooking: vi.fn(),
+  useBookingHold: vi.fn(),
   useConfirmBooking: vi.fn(),
 }));
 
-import { useCreateBooking, useConfirmBooking } from '@/services/bookingService';
+import { useBookingHold, useConfirmBooking } from '@/services/bookingService';
 
 // --------------------------------------------------------------------------
 // Mock propertyService
@@ -153,10 +152,11 @@ describe('CheckoutPage', () => {
       isLoading: false,
     });
 
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: mockCreateBookingMutate,
-      isPending: false,
-      isIdle: true,
+    // Default: hold created successfully
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockBookingResponse,
+      error: null,
+      isLoading: false,
     });
 
     (useConfirmBooking as ReturnType<typeof vi.fn>).mockReturnValue({
@@ -176,9 +176,10 @@ describe('CheckoutPage', () => {
   });
 
   it('shows loading skeleton when booking creation is pending', () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: mockCreateBookingMutate,
-      isPending: true,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: undefined,
+      error: null,
+      isLoading: true,
     });
 
     render(<CheckoutPage />);
@@ -186,11 +187,10 @@ describe('CheckoutPage', () => {
   });
 
   it('shows error state when booking creation fails with 409', async () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onError: (err: { status: number; message: string }) => void }) => {
-        opts.onError({ status: 409, message: 'Conflict' });
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: undefined,
+      error: { status: 409, message: 'Conflict' },
+      isLoading: false,
     });
 
     render(<CheckoutPage />);
@@ -202,11 +202,10 @@ describe('CheckoutPage', () => {
   });
 
   it('shows error state when booking creation fails with generic error', async () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onError: (err: { status: number; message: string }) => void }) => {
-        opts.onError({ status: 500, message: 'Internal server error' });
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: undefined,
+      error: { status: 500, message: 'Internal server error' },
+      isLoading: false,
     });
 
     render(<CheckoutPage />);
@@ -217,12 +216,10 @@ describe('CheckoutPage', () => {
   });
 
   it('shows checkout page with summary and form after booking is created', async () => {
-    // Simulate mutate calling onSuccess synchronously
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
-        opts.onSuccess(mockBookingResponse);
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockBookingResponse,
+      error: null,
+      isLoading: false,
     });
 
     render(<CheckoutPage />);
@@ -235,11 +232,10 @@ describe('CheckoutPage', () => {
   });
 
   it('redirects to the property page with ?expired=true when the hold expires', async () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
-        opts.onSuccess(mockBookingResponse);
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockBookingResponse,
+      error: null,
+      isLoading: false,
     });
 
     render(<CheckoutPage />);
@@ -249,11 +245,10 @@ describe('CheckoutPage', () => {
   });
 
   it('navigates to confirmation page on successful payment', async () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
-        opts.onSuccess(mockBookingResponse);
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockBookingResponse,
+      error: null,
+      isLoading: false,
     });
 
     // Confirm response is BookingDetailResponse (not the old flat shape).
