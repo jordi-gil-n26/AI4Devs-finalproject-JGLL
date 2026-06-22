@@ -20,7 +20,7 @@ function StarRating({ rating, size = 'sm' }: { rating: number; size?: 'sm' | 'lg
         <Star
           key={star}
           className={`${iconClass} ${
-            star <= rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 fill-gray-100'
+            star <= rating ? 'text-terracotta fill-terracotta' : 'text-border fill-transparent'
           }`}
           aria-hidden
         />
@@ -36,7 +36,7 @@ function ReviewCard({ review }: { review: Review }) {
   });
 
   return (
-    <div className="border border-gray-200 rounded-xl p-4 space-y-2" data-testid="review-card">
+    <div className="border border-border rounded-card p-4 space-y-2" data-testid="review-card">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {review.guest_avatar_url ? (
@@ -46,20 +46,20 @@ function ReviewCard({ review }: { review: Review }) {
               className="w-9 h-9 rounded-full object-cover"
             />
           ) : (
-            <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-semibold text-sm">
+            <div className="w-9 h-9 rounded-full bg-terracotta-tint flex items-center justify-center text-terracotta font-semibold text-sm">
               {review.guest_name.charAt(0).toUpperCase()}
             </div>
           )}
           <div>
-            <p className="text-sm font-semibold text-gray-900">{review.guest_name}</p>
-            <p className="text-xs text-gray-500">{date}</p>
+            <p className="text-sm font-semibold text-ink">{review.guest_name}</p>
+            <p className="text-xs text-taupe">{date}</p>
           </div>
         </div>
         <StarRating rating={review.rating} size="sm" />
       </div>
 
       {review.comment && (
-        <p className="text-sm text-gray-700 leading-relaxed">{review.comment}</p>
+        <p className="text-sm text-taupe leading-relaxed">{review.comment}</p>
       )}
     </div>
   );
@@ -88,10 +88,10 @@ export function ReviewList({ propertyId, avgRating, reviewCount }: ReviewListPro
       <div data-testid="review-list-loading" aria-busy="true" aria-label="Loading reviews">
         <div className="space-y-3">
           {[1, 2].map((i) => (
-            <div key={i} className="border border-gray-200 rounded-xl p-4 animate-pulse space-y-2">
-              <div className="h-4 bg-gray-200 rounded w-32" />
-              <div className="h-4 bg-gray-200 rounded w-full" />
-              <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div key={i} className="border border-border rounded-card p-4 animate-pulse space-y-2">
+              <div className="h-4 bg-border rounded w-32" />
+              <div className="h-4 bg-border rounded w-full" />
+              <div className="h-4 bg-border rounded w-3/4" />
             </div>
           ))}
         </div>
@@ -104,7 +104,7 @@ export function ReviewList({ propertyId, avgRating, reviewCount }: ReviewListPro
       <div
         data-testid="review-list-error"
         role="alert"
-        className="text-red-600 text-sm bg-red-50 border border-red-200 rounded-xl p-4"
+        className="text-terracotta text-sm bg-terracotta-tint border border-terracotta/30 rounded-card p-4"
       >
         Failed to load reviews. Please refresh the page.
       </div>
@@ -124,25 +124,25 @@ export function ReviewList({ propertyId, avgRating, reviewCount }: ReviewListPro
         {showRating ? (
           <>
             <StarRating rating={Math.round(avgRating)} size="lg" />
-            <span className="text-2xl font-bold text-gray-900">{avgRating.toFixed(1)}</span>
-            <span className="text-sm text-gray-500">
+            <span className="text-2xl font-bold font-serif text-ink">{avgRating.toFixed(1)}</span>
+            <span className="text-sm text-taupe">
               ({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})
             </span>
           </>
         ) : (
-          <span className="text-sm text-gray-500">No rating yet</span>
+          <span className="text-sm text-taupe">No rating yet</span>
         )}
       </div>
 
       {/* Empty state */}
       {isEmpty ? (
-        <p className="text-gray-500 text-sm py-4" data-testid="review-list-empty">
+        <p className="text-taupe text-sm py-4" data-testid="review-list-empty">
           No reviews yet
         </p>
       ) : (
         <>
-          {/* Review cards */}
-          <div className="space-y-3">
+          {/* Review cards — two-column on desktop */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {reviews.map((review) => (
               <ReviewCard key={review.id} review={review} />
             ))}
@@ -154,7 +154,7 @@ export function ReviewList({ propertyId, avgRating, reviewCount }: ReviewListPro
               type="button"
               onClick={() => setPage((p) => p + 1)}
               disabled={isLoading}
-              className="mt-4 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
+              className="mt-4 px-4 py-2 border border-border rounded-pill text-sm text-taupe hover:bg-terracotta-tint transition-colors disabled:opacity-50"
               data-testid="review-load-more"
             >
               {isLoading ? 'Loading…' : 'Load more reviews'}
