@@ -29,6 +29,28 @@ import {
   usePropertyReviews,
 } from '@/services/propertyService';
 
+// Stub the calendar so the page test can drive its date-selection callback
+// directly (the calendar's own behaviour is covered in its own test file).
+vi.mock('@/components/property/AvailabilityCalendar', () => ({
+  AvailabilityCalendar: ({
+    onDateRangeSelect,
+  }: {
+    onDateRangeSelect: (checkIn: string, checkOut: string) => void;
+  }) =>
+    React.createElement(
+      'div',
+      { 'data-testid': 'availability-calendar' },
+      React.createElement(
+        'button',
+        {
+          'data-testid': 'cal-pick-dates',
+          onClick: () => onDateRangeSelect('2026-08-01', '2026-08-05'),
+        },
+        'pick dates',
+      ),
+    ),
+}));
+
 const mockProperty: Property = {
   id: 'prop-uuid-001',
   title: 'Cosy Eixample Apartment',
@@ -246,6 +268,24 @@ describe('PropertyDetailPage', () => {
       fireEvent.click(screen.getByTestId('reserve-button'));
       expect(mockPush).toHaveBeenCalledWith(
         expect.stringContaining('/booking/checkout?propertyId=prop-uuid-001'),
+      );
+    });
+
+    it('updates the URL with scroll:false when a date is picked (no jump to top)', async () => {
+      const { useRouter } = await import('next/navigation');
+      const mockReplace = vi.fn();
+      (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
+        push: vi.fn(),
+        replace: mockReplace,
+        back: vi.fn(),
+      });
+
+      render(<PropertyDetailPage />, { wrapper: createWrapper() });
+      fireEvent.click(screen.getAllByTestId('cal-pick-dates')[0]);
+
+      expect(mockReplace).toHaveBeenCalledWith(
+        expect.stringContaining('check_in=2026-08-01'),
+        { scroll: false },
       );
     });
   });
