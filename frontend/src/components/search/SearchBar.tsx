@@ -118,7 +118,7 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
     <form
       onSubmit={handleSubmit}
       data-testid="search-form"
-      className="w-full rounded-pill border border-border bg-surface p-2 md:flex md:items-center md:gap-2"
+      className="w-full rounded-card md:rounded-pill border border-border bg-surface p-2 md:flex md:items-center md:gap-2"
     >
       {/* Location Input */}
       <div className="flex flex-col gap-1 flex-1 px-2 py-1">

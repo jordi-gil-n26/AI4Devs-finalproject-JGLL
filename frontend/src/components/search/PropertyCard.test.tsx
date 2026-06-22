@@ -46,12 +46,17 @@ describe('PropertyCard Component', () => {
   });
 
   it('renders rating as single star with numeric value', () => {
-    render(<PropertyCard property={mockProperty} onClick={() => {}} />);
+    const { container } = render(<PropertyCard property={mockProperty} onClick={() => {}} />);
 
-    // Editorial style: single star + toFixed(2)
-    expect(screen.getByText('4.80')).toBeInTheDocument();
-    // Single star present
-    expect(screen.getByText('★')).toBeInTheDocument();
+    // Editorial style: single star + toFixed(2) (both aria-hidden; sr-only span carries accessible text)
+    // Use container queries because aria-hidden elements are excluded from accessible getByText
+    const ratingSpan = container.querySelector('[aria-hidden="true"].font-sans');
+    expect(ratingSpan).toBeInTheDocument();
+    expect(ratingSpan?.textContent).toBe('4.80');
+    // Single star present (aria-hidden)
+    const starSpan = container.querySelector('[aria-hidden="true"].text-terracotta');
+    expect(starSpan).toBeInTheDocument();
+    expect(starSpan?.textContent).toBe('★');
   });
 
   it('shows "night" label in price', () => {
@@ -79,6 +84,13 @@ describe('PropertyCard Component', () => {
     await user.click(card);
 
     expect(handleClick).toHaveBeenCalledWith(mockProperty.id);
+  });
+
+  it('exposes the rating to assistive tech with context', () => {
+    render(<PropertyCard property={mockProperty} onClick={() => {}} />);
+    expect(
+      screen.getByText(`Rated ${mockProperty.avg_rating!.toFixed(2)} out of 5`)
+    ).toBeInTheDocument();
   });
 
   it('renders "New" when avg_rating is null', () => {

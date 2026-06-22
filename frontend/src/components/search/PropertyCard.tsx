@@ -53,7 +53,8 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
           {property.avg_rating !== null && property.avg_rating !== undefined ? (
             <>
               <span aria-hidden className="text-terracotta">★</span>
-              <span className="font-sans text-base text-ink">{rating.toFixed(2)}</span>
+              <span aria-hidden className="font-sans text-base text-ink">{rating.toFixed(2)}</span>
+              <span className="sr-only">Rated {rating.toFixed(2)} out of 5</span>
             </>
           ) : (
             <span className="font-sans text-xs text-taupe">New</span>
