@@ -71,7 +71,7 @@ describe('ConfirmationPage', () => {
     );
   });
 
-  it('shows green checkmark icon', async () => {
+  it('shows the success checkmark icon', async () => {
     setSessionData(mockSessionData);
     render(<ConfirmationPage />);
     await waitFor(() =>

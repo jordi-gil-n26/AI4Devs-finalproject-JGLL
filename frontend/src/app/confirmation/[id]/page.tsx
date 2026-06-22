@@ -115,7 +115,6 @@ export default function ConfirmationPage() {
             {/* Property thumbnail + title + reference */}
             <div className="flex items-center gap-4">
               {data.property_photo_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={data.property_photo_url}
                   alt={data.property_title}
