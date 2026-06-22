@@ -83,7 +83,11 @@ function PropertyDetailPageContent() {
       } else {
         current.delete('check_out');
       }
-      router.replace(`/property/${propertyId}?${current.toString()}`);
+      // scroll: false keeps the viewport in place — picking a date only updates
+      // the query params, so we must not let App Router jump back to the top.
+      router.replace(`/property/${propertyId}?${current.toString()}`, {
+        scroll: false,
+      });
     },
     [propertyId, router, searchParams],
   );
