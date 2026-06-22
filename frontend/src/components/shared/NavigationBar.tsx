@@ -84,7 +84,7 @@ export function NavigationBar() {
   return (
     <nav
       data-testid="navigation-bar"
-      className="sticky top-0 z-40 border-b border-border bg-white"
+      className="sticky top-0 z-40 border-b border-border bg-surface"
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-4">
