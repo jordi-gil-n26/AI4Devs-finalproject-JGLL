@@ -28,6 +28,12 @@ describe('TripCard', () => {
     expect(screen.getByText('10 Jun 2030 → 13 Jun 2030')).toBeInTheDocument();
   });
 
+  it('uses editorial card styling and status tokens', () => {
+    render(<TripCard trip={trip} onClick={vi.fn()} />);
+    expect(screen.getByTestId('trip-card').className).toContain('rounded-card');
+    expect(screen.getByTestId('trip-status').className).toContain('bg-terracotta-tint');
+  });
+
   it('calls onClick with the booking id when activated', async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
