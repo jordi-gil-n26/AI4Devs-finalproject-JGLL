@@ -10,10 +10,12 @@ describe('Footer', () => {
     expect(screen.getByText(/curated hospitality/i)).toBeInTheDocument();
   });
 
-  it('renders Company and Legal link groups', () => {
+  it('renders Company and Legal navigation landmarks with their links', () => {
     render(<Footer />);
-    expect(screen.getByText('Company')).toBeInTheDocument();
-    expect(screen.getByText('Legal')).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Company' })).toBeInTheDocument();
+    expect(screen.getByRole('navigation', { name: 'Legal' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Sustainability' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Press Kit' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Privacy Policy' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Contact' })).toBeInTheDocument();
   });
