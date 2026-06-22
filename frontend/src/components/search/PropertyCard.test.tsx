@@ -45,19 +45,28 @@ describe('PropertyCard Component', () => {
     expect(screen.getByText(/€120/)).toBeInTheDocument();
   });
 
-  it('renders rating with stars', () => {
+  it('renders rating as single star with numeric value', () => {
     render(<PropertyCard property={mockProperty} onClick={() => {}} />);
 
-    expect(screen.getByText('4.8')).toBeInTheDocument();
-    expect(screen.getByText(/12 reviews/i)).toBeInTheDocument();
+    // Editorial style: single star + toFixed(2)
+    expect(screen.getByText('4.80')).toBeInTheDocument();
+    // Single star present
+    expect(screen.getByText('★')).toBeInTheDocument();
   });
 
-  it('displays 5 star elements for rating display', () => {
+  it('shows "night" label in price', () => {
     render(<PropertyCard property={mockProperty} onClick={() => {}} />);
 
-    const stars = screen.getAllByRole('img', { hidden: true });
-    // Should have stars for rating visualization
-    expect(stars.length).toBeGreaterThan(0);
+    expect(screen.getByText('night')).toBeInTheDocument();
+  });
+
+  it('renders city and country as the location heading', () => {
+    render(<PropertyCard property={mockProperty} onClick={() => {}} />);
+
+    // Editorial: location is an h3 heading with font-serif
+    const heading = screen.getByRole('heading', { name: /barcelona, spain/i });
+    expect(heading).toBeInTheDocument();
+    expect(heading.className).toContain('font-serif');
   });
 
   it('calls onClick when card is clicked', async () => {
@@ -72,12 +81,12 @@ describe('PropertyCard Component', () => {
     expect(handleClick).toHaveBeenCalledWith(mockProperty.id);
   });
 
-  it('renders property with no rating gracefully', () => {
+  it('renders "New" when avg_rating is null', () => {
     const propertyNoRating = { ...mockProperty, avg_rating: null };
 
     render(<PropertyCard property={propertyNoRating} onClick={() => {}} />);
 
-    expect(screen.getByText(/no ratings yet/i)).toBeInTheDocument();
+    expect(screen.getByText('New')).toBeInTheDocument();
   });
 
   it('renders city location', () => {

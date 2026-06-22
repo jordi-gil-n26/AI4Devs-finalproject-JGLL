@@ -19,79 +19,44 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
     onClick(property.id);
   };
 
-  // Calculate star display (0-5 stars)
   const rating = property.avg_rating || 0;
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 >= 0.5;
 
   return (
     <button
       onClick={handleClick}
-      className="group relative h-full w-full overflow-hidden rounded-lg bg-white shadow-sm transition-shadow hover:shadow-md"
+      className="group relative flex h-full w-full flex-col overflow-hidden rounded-card border border-border bg-surface text-left transition-shadow hover:shadow-md"
       type="button"
       aria-label={`View ${property.title}`}
     >
-      {/* Photo Container */}
-      <div className="relative aspect-square overflow-hidden bg-gray-200">
+      <div className="relative aspect-square w-full overflow-hidden bg-canvas">
         <img
           src={property.photo_url}
           alt={`Photo of ${property.title}`}
-          onError={(e) => {
-            e.currentTarget.src = 'https://via.placeholder.com/300x200?text=No+Image';
-          }}
+          onError={(e) => { e.currentTarget.src = 'https://via.placeholder.com/300x200?text=No+Image'; }}
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
         />
       </div>
-
-      {/* Content Container */}
-      <div className="flex flex-col gap-2 p-3">
-        {/* Title */}
-        <h3 className="line-clamp-2 text-sm font-semibold text-gray-900">
-          {property.title}
-        </h3>
-
-        {/* Location */}
-        <p className="text-xs text-gray-600">
-          {property.location.city}, {property.location.country}
-        </p>
-
-        {/* Price */}
-        <p className="text-sm font-bold text-gray-900">
-          €{property.nightly_rate_eur.toFixed(0)} <span className="text-xs font-normal text-gray-600">per night</span>
-        </p>
-
-        {/* Rating */}
-        <div className="flex items-center gap-1">
+      <div className="flex items-start justify-between gap-2 p-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <h3 className="truncate font-serif text-2xl leading-8 text-ink">
+            {property.location.city}, {property.location.country}
+          </h3>
+          <p className="truncate font-sans text-xs font-medium tracking-[0.02em] text-taupe">
+            {property.title}
+          </p>
+          <p className="mt-1 font-sans text-base font-bold text-ink">
+            €{property.nightly_rate_eur.toFixed(0)}{' '}
+            <span className="font-normal text-taupe">night</span>
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">
           {property.avg_rating !== null && property.avg_rating !== undefined ? (
             <>
-              {/* Star Display */}
-              <div className="flex items-center gap-0.5">
-                {[...Array(5)].map((_, i) => (
-                  <span
-                    key={i}
-                    role="img"
-                    aria-hidden
-                    className={`text-xs ${
-                      i < fullStars
-                        ? 'text-yellow-400'
-                        : i === fullStars && hasHalfStar
-                          ? 'text-yellow-400'
-                          : 'text-gray-300'
-                    }`}
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-              <span className="text-xs font-semibold text-gray-900">
-                {rating.toFixed(1)}
-              </span>
-              <span className="text-xs text-gray-600">
-                ({property.review_count} {property.review_count === 1 ? 'review' : 'reviews'})
-              </span>
+              <span aria-hidden className="text-terracotta">★</span>
+              <span className="font-sans text-base text-ink">{rating.toFixed(2)}</span>
             </>
           ) : (
-            <span className="text-xs text-gray-500">No ratings yet</span>
+            <span className="font-sans text-xs text-taupe">New</span>
           )}
         </div>
       </div>
