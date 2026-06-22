@@ -36,12 +36,6 @@ spring:
       mail.smtp.auth: false
       mail.smtp.starttls.enable: false
 
-# Stripe credentials — env-driven only, never hardcoded.
-# Empty defaults are intentional; payment code (T053) will validate at runtime.
-stripe:
-  secret-key: ${STRIPE_SECRET_KEY:}
-  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
-
 # Actuator — expose only health and info; lock down sensitive endpoints.
 management:
   endpoints:

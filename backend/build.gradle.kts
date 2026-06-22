@@ -26,7 +26,6 @@ extra["mockkVersion"] = "1.13.14"
 extra["springmockkVersion"] = "4.0.2"
 extra["springdocVersion"] = "2.8.3"
 extra["coroutinesVersion"] = "1.8.1"
-extra["stripeVersion"] = "29.0.0"
 extra["jjwtVersion"] = "0.12.6"
 
 dependencies {
@@ -58,9 +57,6 @@ dependencies {
 
     // API documentation
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:${property("springdocVersion")}")
-
-    // Payments
-    implementation("com.stripe:stripe-java:${property("stripeVersion")}")
 
     // JWT — secret/issuer are env-driven (see stayhub.jwt.* in application.yml)
     implementation("io.jsonwebtoken:jjwt-api:${property("jjwtVersion")}")
