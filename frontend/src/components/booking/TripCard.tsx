@@ -3,6 +3,7 @@
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
 import type { BookingSummary, BookingStatus } from '@/types';
+import { formatDate } from '@/lib/formatDate';
 
 interface TripCardProps {
   trip: BookingSummary;
@@ -14,15 +15,6 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
   cancelled: 'border border-border bg-surface text-taupe',
   completed: 'bg-canvas text-taupe',
 };
-
-function formatDate(iso: string): string {
-  const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 export function TripCard({ trip, onClick }: TripCardProps) {
   return (

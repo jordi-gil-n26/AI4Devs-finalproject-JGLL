@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, MapPin } from 'lucide-react';
 import { CancellationModal } from '@/components/booking/CancellationModal';
 import { useBookingDetail, useCancelBooking } from '@/services/tripsService';
+import { formatDate } from '@/lib/formatDate';
 import type { BookingStatus } from '@/types';
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
@@ -12,15 +13,6 @@ const STATUS_STYLES: Record<BookingStatus, string> = {
   cancelled: 'border border-border bg-surface text-taupe',
   completed: 'bg-canvas text-taupe',
 };
-
-function formatDate(iso: string): string {
-  const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, month - 1, day).toLocaleDateString('en-GB', {
-    day: 'numeric',
-    month: 'short',
-    year: 'numeric',
-  });
-}
 
 export default function TripDetailPage() {
   const params = useParams();

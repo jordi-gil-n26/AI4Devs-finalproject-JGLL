@@ -11,39 +11,9 @@ import { BookingSummary } from '@/components/booking/BookingSummary';
 import { PaymentForm } from '@/components/booking/PaymentForm';
 import { HoldCountdownBanner } from '@/components/booking/HoldCountdownBanner';
 import { Label } from '@/components/shared/ui';
+import { formatDateRange } from '@/lib/formatDate';
 import type { CreateBookingResponse } from '@/types';
 import type { ConfirmationSessionData } from '@/types/booking';
-
-// --------------------------------------------------------------------------
-// Date formatting (deterministic — avoids `new Date('YYYY-MM-DD')` UTC shift)
-// --------------------------------------------------------------------------
-
-const MONTHS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-];
-
-/** Formats a "YYYY-MM-DD" string as e.g. "Jul 10". */
-function formatDay(isoDate: string): string {
-  const [year, month, day] = isoDate.split('-').map((p) => parseInt(p, 10));
-  if (!year || !month || !day) return isoDate;
-  const monthName = MONTHS[month - 1] ?? '';
-  return `${monthName} ${day}`;
-}
-
-/** Returns the 4-digit year from a "YYYY-MM-DD" string. */
-function formatYear(isoDate: string): string {
-  return isoDate.split('-')[0] ?? '';
-}
-
-/**
- * Formats a date range, collapsing the year to the end.
- * e.g. ("2026-07-10", "2026-07-13") → "Jul 10 – Jul 13, 2026".
- */
-function formatDateRange(checkIn: string, checkOut: string): string {
-  if (!checkIn || !checkOut) return '';
-  return `${formatDay(checkIn)} – ${formatDay(checkOut)}, ${formatYear(checkOut)}`;
-}
 
 /**
  * Checkout Page — /booking/checkout
