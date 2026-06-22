@@ -21,4 +21,10 @@ describe('Heading', () => {
     const el = screen.getByRole('heading', { level: 3 });
     expect(el.className).toContain('mb-4');
   });
+
+  it('forwards arbitrary attributes to the heading element', () => {
+    render(<Heading id="trip-title" data-testid="heading">Title</Heading>);
+    const el = screen.getByTestId('heading');
+    expect(el).toHaveAttribute('id', 'trip-title');
+  });
 });
