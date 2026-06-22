@@ -86,7 +86,7 @@ export function AmenityList({ amenities }: AmenityListProps) {
 
   if (!amenities || amenities.length === 0) {
     return (
-      <p className="text-gray-500 text-sm" data-testid="amenity-list-empty">
+      <p className="text-taupe text-sm" data-testid="amenity-list-empty">
         No amenities listed
       </p>
     );
@@ -101,8 +101,8 @@ export function AmenityList({ amenities }: AmenityListProps) {
         {visible.map((amenity) => {
           const Icon = getAmenityIcon(amenity);
           return (
-            <li key={amenity} className="flex items-center gap-2 text-gray-700">
-              <Icon className="w-5 h-5 text-gray-500 flex-shrink-0" aria-hidden />
+            <li key={amenity} className="flex items-center gap-2 text-ink">
+              <Icon className="w-5 h-5 text-taupe flex-shrink-0" aria-hidden />
               <span className="text-sm">{formatAmenity(amenity)}</span>
             </li>
           );
@@ -113,7 +113,7 @@ export function AmenityList({ amenities }: AmenityListProps) {
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
-          className="mt-4 text-sm font-medium text-blue-600 hover:text-blue-800 underline underline-offset-2 transition-colors"
+          className="mt-4 text-sm font-medium text-terracotta hover:text-terracotta underline underline-offset-2 transition-colors"
           aria-expanded={expanded}
         >
           {expanded ? 'Show less' : `Show all (${amenities.length})`}
