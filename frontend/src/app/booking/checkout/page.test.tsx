@@ -50,9 +50,13 @@ import { usePropertyDetails } from '@/services/propertyService';
 // --------------------------------------------------------------------------
 
 vi.mock('@/components/booking/BookingSummary', () => ({
-  BookingSummary: ({ onHoldExpired }: { onHoldExpired: () => void }) => {
+  BookingSummary: () => React.createElement('div', { 'data-testid': 'booking-summary-stub' }),
+}));
+
+vi.mock('@/components/booking/HoldCountdownBanner', () => ({
+  HoldCountdownBanner: ({ onHoldExpired }: { onHoldExpired: () => void }) => {
     React.useEffect(() => { onHoldExpired(); }, [onHoldExpired]);
-    return <div data-testid="booking-summary-stub" />;
+    return React.createElement('div', { 'data-testid': 'hold-banner-stub' });
   },
 }));
 

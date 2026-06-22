@@ -9,8 +9,41 @@ import { useCreateBooking, useConfirmBooking } from '@/services/bookingService';
 import { usePropertyDetails } from '@/services/propertyService';
 import { BookingSummary } from '@/components/booking/BookingSummary';
 import { PaymentForm } from '@/components/booking/PaymentForm';
+import { HoldCountdownBanner } from '@/components/booking/HoldCountdownBanner';
+import { Label } from '@/components/shared/ui';
 import type { CreateBookingResponse } from '@/types';
 import type { ConfirmationSessionData } from '@/types/booking';
+
+// --------------------------------------------------------------------------
+// Date formatting (deterministic — avoids `new Date('YYYY-MM-DD')` UTC shift)
+// --------------------------------------------------------------------------
+
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/** Formats a "YYYY-MM-DD" string as e.g. "Jul 10". */
+function formatDay(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map((p) => parseInt(p, 10));
+  if (!year || !month || !day) return isoDate;
+  const monthName = MONTHS[month - 1] ?? '';
+  return `${monthName} ${day}`;
+}
+
+/** Returns the 4-digit year from a "YYYY-MM-DD" string. */
+function formatYear(isoDate: string): string {
+  return isoDate.split('-')[0] ?? '';
+}
+
+/**
+ * Formats a date range, collapsing the year to the end.
+ * e.g. ("2026-07-10", "2026-07-13") → "Jul 10 – Jul 13, 2026".
+ */
+function formatDateRange(checkIn: string, checkOut: string): string {
+  if (!checkIn || !checkOut) return '';
+  return `${formatDay(checkIn)} – ${formatDay(checkOut)}, ${formatYear(checkOut)}`;
+}
 
 /**
  * Checkout Page — /booking/checkout
@@ -25,10 +58,11 @@ import type { ConfirmationSessionData } from '@/types/booking';
  *   1. Read params from URL search params.
  *   2. On first render, POST /api/v1/bookings → receive bookingId,
  *      clientSecret, priceBreakdown, holdExpiresAt.
- *   3. Render BookingSummary (left) + PaymentForm (right).
+ *   3. Render the editorial "Confirm and pay" layout: hold banner (full width),
+ *      "Your trip" + "Pay with" (left), BookingSummary (right).
  *   4. On successful Stripe payment, POST confirm → store confirmation
  *      data in sessionStorage → navigate to /confirmation/{bookingId}.
- *   5. If hold expires, show error + "Back to search" CTA.
+ *   5. If hold expires, redirect to the property page with ?expired=true.
  *   6. Handle API errors (409 → dates taken, 400 → validation).
  */
 function CheckoutPageContent() {
@@ -143,10 +177,10 @@ function CheckoutPageContent() {
         data-testid="checkout-loading"
       >
         <div className="animate-pulse space-y-6">
-          <div className="h-8 bg-gray-200 rounded w-48" />
+          <div className="h-8 bg-border rounded-card w-48" />
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-64 bg-gray-200 rounded-xl" />
-            <div className="h-64 bg-gray-200 rounded-xl" />
+            <div className="h-64 bg-border rounded-card" />
+            <div className="h-64 bg-border rounded-card" />
           </div>
         </div>
       </div>
@@ -164,18 +198,18 @@ function CheckoutPageContent() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"
+          className="flex items-center gap-1 text-sm text-taupe hover:text-ink mb-6"
         >
           <ChevronLeft className="w-4 h-4" />
           Back
         </button>
-        <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700">
+        <div className="p-4 bg-terracotta-tint border border-border rounded-card text-terracotta">
           <h2 className="font-semibold mb-1">Booking error</h2>
           <p className="text-sm">{pageError}</p>
         </div>
         <Link
           href="/"
-          className="mt-4 inline-block text-sm text-blue-600 hover:underline"
+          className="mt-4 inline-block text-sm text-terracotta hover:underline"
         >
           Back to search
         </Link>
@@ -196,54 +230,106 @@ function CheckoutPageContent() {
         data-testid="checkout-confirming"
       >
         <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-64 mx-auto" />
-          <div className="h-4 bg-gray-200 rounded w-48 mx-auto" />
+          <div className="h-8 bg-border rounded-card w-64 mx-auto" />
+          <div className="h-4 bg-border rounded-card w-48 mx-auto" />
         </div>
-        <p className="mt-6 text-gray-500">Confirming your booking…</p>
+        <p className="mt-6 text-taupe">Confirming your booking…</p>
       </div>
     );
   }
 
   // ── Main checkout view ───────────────────────────────────────────────────
+  const editTripHref = `/property/${propertyId}?check_in=${checkIn}&check_out=${checkOut}`;
+
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8" data-testid="checkout-page">
-      {/* Back navigation */}
-      <button
-        type="button"
-        onClick={() => router.back()}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6 transition-colors"
-        aria-label="Go back"
-      >
-        <ChevronLeft className="w-4 h-4" />
-        Back
-      </button>
+    <>
+      {/* Full-width hold countdown banner */}
+      <HoldCountdownBanner
+        holdExpiresAt={booking.hold_expires_at}
+        onHoldExpired={() => router.replace(`/property/${propertyId}?expired=true`)}
+      />
 
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Checkout</h1>
+      <div className="max-w-4xl mx-auto px-4 py-8" data-testid="checkout-page">
+        {/* Back navigation */}
+        <button
+          type="button"
+          onClick={() => router.back()}
+          className="flex items-center gap-1 text-sm text-taupe hover:text-ink mb-6 transition-colors"
+          aria-label="Go back"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          Back
+        </button>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Left: booking summary */}
-        <BookingSummary
-          property={property}
-          checkIn={checkIn}
-          checkOut={checkOut}
-          guestCount={guestCount}
-          priceBreakdown={booking.price_breakdown}
-          holdExpiresAt={booking.hold_expires_at}
-          onHoldExpired={() => router.replace(`/property/${propertyId}?expired=true`)}
-        />
+        <h1 className="text-2xl font-serif text-ink mb-6">Confirm and pay</h1>
 
-        {/* Right: payment form */}
-        <div className="rounded-xl border border-gray-200 bg-white p-5">
-          <h2 className="text-base font-semibold text-gray-900 mb-4">Payment</h2>
-          <PaymentForm
-            clientSecret={booking.stripe_client_secret}
-            bookingId={booking.booking_id}
-            onSuccess={handlePaymentSuccess}
-            onError={handlePaymentError}
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
+          {/* Left: your trip + payment */}
+          <div>
+            {/* Your trip */}
+            <h2 className="font-serif text-ink text-lg mb-4">Your trip</h2>
+
+            <div className="flex items-start justify-between">
+              <div>
+                <Label>Dates</Label>
+                <p className="text-ink text-sm mt-1">{formatDateRange(checkIn, checkOut)}</p>
+              </div>
+              <Link
+                href={editTripHref}
+                aria-label="Edit dates"
+                className="text-sm text-terracotta underline hover:opacity-70"
+              >
+                Edit
+              </Link>
+            </div>
+
+            <div className="border-t border-divider my-4" />
+
+            <div className="flex items-start justify-between">
+              <div>
+                <Label>Guests</Label>
+                <p className="text-ink text-sm mt-1">
+                  {guestCount} {guestCount === 1 ? 'guest' : 'guests'}
+                </p>
+              </div>
+              <Link
+                href={editTripHref}
+                aria-label="Edit guests"
+                className="text-sm text-terracotta underline hover:opacity-70"
+              >
+                Edit
+              </Link>
+            </div>
+
+            <div className="border-t border-divider my-4" />
+
+            {/* Pay with */}
+            <h2 className="font-serif text-ink text-lg mb-4">Pay with</h2>
+            <div className="rounded-card border border-border bg-surface p-5">
+              <PaymentForm
+                clientSecret={booking.stripe_client_secret}
+                bookingId={booking.booking_id}
+                onSuccess={handlePaymentSuccess}
+                onError={handlePaymentError}
+              />
+            </div>
+
+            {/* Legal fine print */}
+            <p className="mt-4 text-xs text-taupe">
+              By selecting the button above, you agree to the Host&rsquo;s{' '}
+              <a href="#" className="underline hover:opacity-70">House Rules</a>,{' '}
+              <a href="#" className="underline hover:opacity-70">Ground rules for guests</a>, and StayHub&rsquo;s{' '}
+              <a href="#" className="underline hover:opacity-70">Rebooking and Refund Policy</a>.
+            </p>
+          </div>
+
+          {/* Right: booking summary */}
+          <div className="lg:sticky lg:top-[calc(var(--nav-h)+1rem)]">
+            <BookingSummary property={property} priceBreakdown={booking.price_breakdown} />
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
