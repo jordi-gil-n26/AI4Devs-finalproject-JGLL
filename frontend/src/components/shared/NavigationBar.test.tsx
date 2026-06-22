@@ -58,4 +58,14 @@ describe('NavigationBar', () => {
     await user.click(screen.getByTestId('nav-mobile-toggle'));
     expect(screen.getByTestId('nav-mobile-menu')).toBeInTheDocument();
   });
+
+  it('renders the StayHub logo in the serif editorial font', () => {
+    render(<NavigationBar />);
+    expect(screen.getByTestId('nav-home').className).toContain('font-serif');
+  });
+
+  it('styles the signed-out Sign up CTA with the terracotta accent', () => {
+    render(<NavigationBar />);
+    expect(screen.getByTestId('nav-register').className).toContain('bg-terracotta');
+  });
 });
