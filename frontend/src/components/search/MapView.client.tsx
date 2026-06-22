@@ -73,10 +73,10 @@ export function MapViewClient({
     return (
       <div
         data-testid="mapbox-map"
-        className="flex items-center justify-center w-full h-full bg-gray-100"
+        className="flex items-center justify-center w-full h-full bg-canvas"
       >
         <div className="text-center">
-          <p className="text-gray-600 text-sm">Map unavailable: Mapbox token not configured</p>
+          <p className="text-taupe text-sm">Map unavailable: Mapbox token not configured</p>
         </div>
       </div>
     );
@@ -114,21 +114,15 @@ export function MapViewClient({
           >
             <div
               data-testid={`marker-${property.id}`}
-              className={`
-                flex items-center justify-center w-8 h-8 rounded-full
-                cursor-pointer transition-all transform
-                ${
-                  hoveredPropertyId === property.id
-                    ? 'bg-blue-600 scale-125 shadow-lg'
-                    : 'bg-red-500 hover:scale-110'
-                }
-                ${selectedPropertyId === property.id ? 'ring-2 ring-blue-300' : ''}
-              `}
-              style={{ boxShadow: '0 2px 4px rgba(0, 0, 0, 0.3)' }}
+              className={`cursor-pointer rounded-pill border px-2 py-1 font-sans text-xs font-semibold shadow-sm transition-all ${
+                hoveredPropertyId === property.id || selectedPropertyId === property.id
+                  ? 'border-terracotta bg-terracotta text-white scale-110'
+                  : 'border-border bg-surface text-terracotta hover:scale-105'
+              }`}
               onMouseEnter={() => handleMarkerHover(property.id)}
               onMouseLeave={handleMarkerLeave}
             >
-              <span className="text-white text-xs font-bold">📍</span>
+              €{property.nightly_rate_eur.toFixed(0)}
             </div>
           </Marker>
         ))}
@@ -143,15 +137,15 @@ export function MapViewClient({
             data-testid="popup"
           >
             <div className="max-w-xs">
-              <h3 className="text-sm font-semibold text-gray-900 line-clamp-1">
+              <h3 className="text-sm font-serif text-ink line-clamp-1">
                 {selectedProperty.title}
               </h3>
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-taupe mt-1">
                 €{selectedProperty.nightly_rate_eur.toFixed(0)}/night
               </p>
               {selectedProperty.avg_rating && (
-                <p className="text-xs text-gray-700 mt-1">
-                  ⭐ {selectedProperty.avg_rating.toFixed(1)} ({selectedProperty.review_count} reviews)
+                <p className="text-xs text-taupe mt-1">
+                  <span className="text-terracotta">★</span> {selectedProperty.avg_rating.toFixed(1)} ({selectedProperty.review_count} reviews)
                 </p>
               )}
             </div>
