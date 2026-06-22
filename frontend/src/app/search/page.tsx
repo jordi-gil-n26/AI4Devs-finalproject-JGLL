@@ -216,8 +216,8 @@ function SearchPageContent() {
 
   return (
     <div className="min-h-screen bg-canvas">
-      {/* SearchBar (sticky top) */}
-      <div className="sticky top-0 z-10 border-b border-divider bg-canvas">
+      {/* SearchBar */}
+      <div className="border-b border-divider bg-canvas">
         <div className="mx-auto max-w-6xl px-4 py-6">
           <SearchBar onSearch={handleSearch} />
         </div>
@@ -305,7 +305,7 @@ function SearchPageContent() {
         </div>
 
         {/* Right pane: MapView */}
-        <aside className="h-96 overflow-hidden md:sticky md:top-[73px] md:h-[calc(100vh-73px)] md:w-[45%]">
+        <aside className="h-96 overflow-hidden md:sticky md:top-[var(--nav-h)] md:h-[calc(100vh-var(--nav-h))] md:w-[45%]">
           <MapView
             properties={searchResults?.results || []}
             selectedPropertyId={selectedPropertyId || ''}

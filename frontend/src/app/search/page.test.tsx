@@ -206,12 +206,12 @@ describe('SearchPage', () => {
     expect(mockPush).toHaveBeenCalledWith('/property/1');
   });
 
-  it('displays sticky SearchBar at top', () => {
+  it('displays SearchBar at the top of the page', () => {
     const { container } = render(<SearchPage />, { wrapper: createWrapper() });
 
-    // Find SearchBar container with sticky positioning
-    const stickyElement = container.querySelector('.sticky');
-    expect(stickyElement).toBeInTheDocument();
+    // SearchBar wrapper scrolls with the page (not sticky) — assert it renders
+    const searchBarWrapper = container.querySelector('.border-b.border-divider.bg-canvas');
+    expect(searchBarWrapper).toBeInTheDocument();
   });
 
   it('displays responsive layout grid', () => {

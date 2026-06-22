@@ -86,7 +86,7 @@ export function NavigationBar() {
       data-testid="navigation-bar"
       className="sticky top-0 z-40 border-b border-border bg-surface"
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-4">
           <Link href="/" data-testid="nav-home" className="font-serif text-xl text-ink tracking-[0.12em] uppercase">
             StayHub
