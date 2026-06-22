@@ -46,6 +46,8 @@ describe('TripDetailPage', () => {
     expect(screen.getByText('Cosy Eixample Apartment')).toBeInTheDocument();
     expect(screen.getByText('BK-20300101-ABC123')).toBeInTheDocument();
     expect(screen.getByText('€386.00')).toBeInTheDocument();
+    // editorial restyle: status badge uses terracotta-tint retone for confirmed
+    expect(screen.getByText('confirmed').className).toContain('bg-terracotta-tint');
   });
 
   it('shows a 404 message when the booking is not found', () => {
