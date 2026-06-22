@@ -81,7 +81,7 @@ async function registerAndBookConfirmedStay(page: Page): Promise<void> {
 test('guest registers, searches, books a property, and reaches confirmation', async ({ page }) => {
   await registerAndBookConfirmedStay(page);
 
-  await expect(page.getByRole('heading', { name: 'Booking Confirmed!' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Your trip is booked!' })).toBeVisible();
   await expect(page.getByText(/^BK-/)).toBeVisible(); // reference number
 });
 
