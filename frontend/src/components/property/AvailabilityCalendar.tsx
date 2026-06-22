@@ -145,9 +145,9 @@ function MonthCalendar({
             else if (reason === 'blocked') cellClasses += 'bg-canvas ';
             else if (reason === 'held') cellClasses += 'bg-canvas ';
           } else if (isSelected) {
-            cellClasses += 'bg-terracotta text-white font-semibold hover:bg-terracotta cursor-pointer ';
+            cellClasses += 'bg-terracotta text-white font-semibold cursor-pointer ';
           } else if (inRange) {
-            cellClasses += 'bg-terracotta-tint text-ink rounded-none hover:bg-terracotta-tint cursor-pointer ';
+            cellClasses += 'bg-terracotta-tint text-ink rounded-none cursor-pointer ';
           } else {
             cellClasses += 'text-ink hover:bg-canvas cursor-pointer ';
           }

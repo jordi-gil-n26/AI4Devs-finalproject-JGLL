@@ -148,4 +148,27 @@ describe('PriceBreakdown Component', () => {
       expect(screen.getByText(/€95.00 × 1 night$/i)).toBeInTheDocument();
     });
   });
+
+  describe('flat prop', () => {
+    it('omits its own card chrome when flat', () => {
+      (usePriceCalculation as ReturnType<typeof vi.fn>).mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: null,
+      });
+      render(<PriceBreakdown propertyId="p1" checkIn={undefined} checkOut={undefined} flat />);
+      const el = screen.getByTestId('price-breakdown-placeholder');
+      expect(el.className).not.toContain('border-border');
+      expect(el.className).not.toContain('bg-surface');
+    });
+    it('keeps card chrome by default (not flat)', () => {
+      (usePriceCalculation as ReturnType<typeof vi.fn>).mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: null,
+      });
+      render(<PriceBreakdown propertyId="p1" checkIn={undefined} checkOut={undefined} />);
+      expect(screen.getByTestId('price-breakdown-placeholder').className).toContain('border-border');
+    });
+  });
 });

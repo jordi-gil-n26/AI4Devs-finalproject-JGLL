@@ -7,6 +7,7 @@ interface PriceBreakdownProps {
   propertyId: string;
   checkIn: string | undefined;
   checkOut: string | undefined;
+  flat?: boolean;
 }
 
 function SkeletonRow() {
@@ -30,15 +31,17 @@ function formatEur(amount: number): string {
  * - Shows loading skeleton, error state, or placeholder when dates missing
  * - Props: propertyId, checkIn, checkOut
  */
-export function PriceBreakdown({ propertyId, checkIn, checkOut }: PriceBreakdownProps) {
+export function PriceBreakdown({ propertyId, checkIn, checkOut, flat = false }: PriceBreakdownProps) {
   const hasDates = !!checkIn && !!checkOut;
 
   const { data, isLoading, error } = usePriceCalculation(propertyId, checkIn, checkOut);
 
+  const chrome = flat ? 'p-0' : 'rounded-card border border-border bg-surface p-5';
+
   if (!hasDates) {
     return (
       <div
-        className="rounded-card border border-border p-5 bg-surface"
+        className={chrome}
         data-testid="price-breakdown-placeholder"
       >
         <p className="text-taupe text-sm text-center py-4">
@@ -51,7 +54,7 @@ export function PriceBreakdown({ propertyId, checkIn, checkOut }: PriceBreakdown
   if (isLoading) {
     return (
       <div
-        className="rounded-card border border-border p-5 bg-surface space-y-2"
+        className={`${chrome} space-y-2`}
         data-testid="price-breakdown-loading"
         aria-busy="true"
         aria-label="Loading price breakdown"
@@ -81,7 +84,7 @@ export function PriceBreakdown({ propertyId, checkIn, checkOut }: PriceBreakdown
 
   return (
     <div
-      className="rounded-card border border-border p-5 bg-surface"
+      className={chrome}
       data-testid="price-breakdown"
     >
       <h3 className="text-base font-semibold font-serif text-ink mb-4">Price breakdown</h3>

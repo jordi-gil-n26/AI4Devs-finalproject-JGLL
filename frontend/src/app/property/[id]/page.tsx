@@ -303,6 +303,7 @@ function PropertyDetailPageContent() {
 
             {/* Price breakdown */}
             <PriceBreakdown
+              flat
               propertyId={propertyId}
               checkIn={checkIn}
               checkOut={checkOut}
