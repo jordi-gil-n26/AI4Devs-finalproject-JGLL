@@ -75,14 +75,14 @@ function InnerPaymentForm({ clientSecret, onSuccess, onError }: InnerFormProps) 
     <form onSubmit={handleSubmit} data-testid="payment-form">
       <div className="mb-4">
         <label
-          className="block text-sm font-medium text-gray-700 mb-2"
+          className="block text-sm font-medium text-ink mb-2"
           htmlFor="card-element"
         >
           Card details
         </label>
         <div
           id="card-element"
-          className="border border-gray-300 rounded-lg px-3 py-3 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent"
+          className="border border-border rounded-card px-3 py-3 focus-within:ring-2 focus-within:ring-terracotta focus-within:border-transparent"
           data-testid="card-element-wrapper"
         >
           <CardElement
@@ -90,8 +90,8 @@ function InnerPaymentForm({ clientSecret, onSuccess, onError }: InnerFormProps) 
               style: {
                 base: {
                   fontSize: '16px',
-                  color: '#111827',
-                  '::placeholder': { color: '#9ca3af' },
+                  color: '#1b1c1a',
+                  '::placeholder': { color: '#56423d' },
                 },
                 invalid: { color: '#ef4444' },
               },
@@ -102,7 +102,7 @@ function InnerPaymentForm({ clientSecret, onSuccess, onError }: InnerFormProps) 
 
       {errorMessage && (
         <div
-          className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700"
+          className="mb-4 p-3 bg-terracotta-tint border border-border rounded-card text-sm text-terracotta"
           role="alert"
           data-testid="payment-error"
         >
@@ -113,7 +113,7 @@ function InnerPaymentForm({ clientSecret, onSuccess, onError }: InnerFormProps) 
       <button
         type="submit"
         disabled={!stripe || loading}
-        className="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+        className="w-full py-3 px-6 bg-terracotta text-white font-semibold rounded-pill hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         data-testid="pay-button"
       >
         {loading ? (
@@ -162,12 +162,12 @@ export function PaymentForm({ clientSecret, bookingId, onSuccess, onError }: Pay
     const stubPaymentIntentId = clientSecret.replace(/^pi_stub_secret_/, '');
     return (
       <div data-testid="payment-form-wrapper">
-        <p className="text-sm text-gray-500 mb-2">E2E test mode — Stripe bypassed.</p>
+        <p className="text-sm text-taupe mb-2">E2E test mode — Stripe bypassed.</p>
         <button
           type="button"
           data-testid="pay-button"
           onClick={() => onSuccess(stubPaymentIntentId)}
-          className="w-full bg-blue-600 text-white rounded-lg py-3 font-medium hover:bg-blue-700"
+          className="w-full bg-terracotta text-white rounded-pill py-3 font-medium hover:opacity-90"
         >
           Pay (E2E)
         </button>
