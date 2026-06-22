@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockPush = vi.fn();
 const mockBack = vi.fn();
 const mockReplace = vi.fn();
-const mockSearchParams = new URLSearchParams({
+let mockSearchParams = new URLSearchParams({
   propertyId: 'prop-uuid-1',
   checkIn: '2026-07-10',
   checkOut: '2026-07-13',
@@ -25,15 +25,14 @@ vi.mock('next/navigation', () => ({
 // Mock bookingService
 // --------------------------------------------------------------------------
 
-const mockCreateBookingMutate = vi.fn();
 const mockConfirmBookingMutate = vi.fn();
 
 vi.mock('@/services/bookingService', () => ({
-  useCreateBooking: vi.fn(),
+  useBookingHold: vi.fn(),
   useConfirmBooking: vi.fn(),
 }));
 
-import { useCreateBooking, useConfirmBooking } from '@/services/bookingService';
+import { useBookingHold, useConfirmBooking } from '@/services/bookingService';
 
 // --------------------------------------------------------------------------
 // Mock propertyService
@@ -144,6 +143,14 @@ describe('CheckoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Reset URL params to a complete, valid set (a test may override below).
+    mockSearchParams = new URLSearchParams({
+      propertyId: 'prop-uuid-1',
+      checkIn: '2026-07-10',
+      checkOut: '2026-07-13',
+      guestCount: '2',
+    });
+
     // Set a mock auth token so the checkout auth guard does not redirect.
     localStorage.setItem('auth_token', 'test-jwt-token');
 
@@ -153,16 +160,40 @@ describe('CheckoutPage', () => {
       isLoading: false,
     });
 
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: mockCreateBookingMutate,
-      isPending: false,
-      isIdle: true,
+    // Default: hold created successfully
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockBookingResponse,
+      error: null,
+      isLoading: false,
     });
 
     (useConfirmBooking as ReturnType<typeof vi.fn>).mockReturnValue({
       mutate: mockConfirmBookingMutate,
       isPending: false,
     });
+  });
+
+  it('redirects to /login when no auth token is present', async () => {
+    localStorage.removeItem('auth_token');
+
+    render(<CheckoutPage />);
+
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith(
+        expect.stringContaining('/login?redirect='),
+      ),
+    );
+  });
+
+  it('shows the params error when booking params are missing', async () => {
+    mockSearchParams = new URLSearchParams({ guestCount: '1' });
+
+    render(<CheckoutPage />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('checkout-error')).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/missing booking parameters/i)).toBeInTheDocument();
   });
 
   it('shows loading skeleton when property is loading', () => {
@@ -176,9 +207,10 @@ describe('CheckoutPage', () => {
   });
 
   it('shows loading skeleton when booking creation is pending', () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: mockCreateBookingMutate,
-      isPending: true,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: undefined,
+      error: null,
+      isLoading: true,
     });
 
     render(<CheckoutPage />);
@@ -186,11 +218,10 @@ describe('CheckoutPage', () => {
   });
 
   it('shows error state when booking creation fails with 409', async () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onError: (err: { status: number; message: string }) => void }) => {
-        opts.onError({ status: 409, message: 'Conflict' });
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: undefined,
+      error: { status: 409, message: 'Conflict' },
+      isLoading: false,
     });
 
     render(<CheckoutPage />);
@@ -202,11 +233,10 @@ describe('CheckoutPage', () => {
   });
 
   it('shows error state when booking creation fails with generic error', async () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onError: (err: { status: number; message: string }) => void }) => {
-        opts.onError({ status: 500, message: 'Internal server error' });
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: undefined,
+      error: { status: 500, message: 'Internal server error' },
+      isLoading: false,
     });
 
     render(<CheckoutPage />);
@@ -217,12 +247,10 @@ describe('CheckoutPage', () => {
   });
 
   it('shows checkout page with summary and form after booking is created', async () => {
-    // Simulate mutate calling onSuccess synchronously
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
-        opts.onSuccess(mockBookingResponse);
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockBookingResponse,
+      error: null,
+      isLoading: false,
     });
 
     render(<CheckoutPage />);
@@ -235,11 +263,10 @@ describe('CheckoutPage', () => {
   });
 
   it('redirects to the property page with ?expired=true when the hold expires', async () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
-        opts.onSuccess(mockBookingResponse);
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockBookingResponse,
+      error: null,
+      isLoading: false,
     });
 
     render(<CheckoutPage />);
@@ -249,11 +276,10 @@ describe('CheckoutPage', () => {
   });
 
   it('navigates to confirmation page on successful payment', async () => {
-    (useCreateBooking as ReturnType<typeof vi.fn>).mockReturnValue({
-      mutate: (req: unknown, opts: { onSuccess: (data: typeof mockBookingResponse) => void }) => {
-        opts.onSuccess(mockBookingResponse);
-      },
-      isPending: false,
+    (useBookingHold as ReturnType<typeof vi.fn>).mockReturnValue({
+      data: mockBookingResponse,
+      error: null,
+      isLoading: false,
     });
 
     // Confirm response is BookingDetailResponse (not the old flat shape).
