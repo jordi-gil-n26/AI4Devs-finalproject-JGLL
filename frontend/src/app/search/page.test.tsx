@@ -105,7 +105,8 @@ describe('SearchPage', () => {
     expect(screen.getByLabelText(/where/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/check-in/i)).toBeInTheDocument();
 
-    // FilterPanel should be visible with price controls
+    // FilterPanel is toggle-gated behind the Filters pill — open it
+    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
     expect(screen.getByLabelText(/minimum price/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/maximum price/i)).toBeInTheDocument();
 
@@ -134,19 +135,20 @@ describe('SearchPage', () => {
 
     // Wait for pagination to be visible
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /previous/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /next/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Previous page' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Next page' })).toBeInTheDocument();
     });
 
-    // Check pagination info
-    expect(screen.getByText(/page 1 of 8/i)).toBeInTheDocument();
+    // Numbered pages: current page 1 of 8 total pages
+    expect(screen.getByRole('button', { name: 'Page 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 8' })).toBeInTheDocument();
   });
 
   it('disables previous button on first page', async () => {
     render(<SearchPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      const prevButton = screen.getByRole('button', { name: /previous/i });
+      const prevButton = screen.getByRole('button', { name: 'Previous page' });
       expect(prevButton).toBeDisabled();
     });
   });
@@ -155,7 +157,7 @@ describe('SearchPage', () => {
     render(<SearchPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      const nextButton = screen.getByRole('button', { name: /next/i });
+      const nextButton = screen.getByRole('button', { name: 'Next page' });
       expect(nextButton).not.toBeDisabled();
     });
   });
@@ -164,12 +166,15 @@ describe('SearchPage', () => {
     render(<SearchPage />, { wrapper: createWrapper() });
 
     await waitFor(() => {
-      expect(screen.getByText(/page 1 of 8/i)).toBeInTheDocument();
+      expect(screen.getByText(/of 150 results/i)).toBeInTheDocument();
     });
   });
 
   it('renders FilterPanel with all filter options', () => {
     render(<SearchPage />, { wrapper: createWrapper() });
+
+    // FilterPanel is toggle-gated behind the Filters pill — open it
+    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
 
     // Price range filters
     expect(screen.getByLabelText(/minimum price/i)).toBeInTheDocument();
@@ -189,28 +194,24 @@ describe('SearchPage', () => {
     const mockPush = vi.fn();
     (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
       push: mockPush,
+      pathname: '/search',
     });
 
     render(<SearchPage />, { wrapper: createWrapper() });
 
-    // Click on a property card button
-    const propertyButtons = screen.getAllByRole('button');
-    // Find a property card button (not pagination or filter button)
-    const propertyButton = propertyButtons.find(
-      (btn) => btn.getAttribute('aria-label')?.includes('View') !== false,
-    );
+    // Click the first property card button by its accessible name
+    const propertyButton = screen.getByRole('button', { name: 'View Beautiful Barcelona Apartment' });
+    fireEvent.click(propertyButton);
 
-    if (propertyButton) {
-      fireEvent.click(propertyButton);
-    }
+    expect(mockPush).toHaveBeenCalledWith('/property/1');
   });
 
-  it('displays sticky SearchBar at top', () => {
+  it('displays SearchBar at the top of the page', () => {
     const { container } = render(<SearchPage />, { wrapper: createWrapper() });
 
-    // Find SearchBar container with sticky positioning
-    const stickyElement = container.querySelector('.sticky');
-    expect(stickyElement).toBeInTheDocument();
+    // SearchBar wrapper scrolls with the page (not sticky) — assert it renders
+    const searchBarWrapper = container.querySelector('.border-b.border-divider.bg-canvas');
+    expect(searchBarWrapper).toBeInTheDocument();
   });
 
   it('displays responsive layout grid', () => {
@@ -242,6 +243,9 @@ describe('SearchPage', () => {
 
   it('applies filters and updates search results', async () => {
     render(<SearchPage />, { wrapper: createWrapper() });
+
+    // FilterPanel is toggle-gated behind the Filters pill — open it
+    fireEvent.click(screen.getByRole('button', { name: /filters/i }));
 
     // Get filter inputs
     const minPriceInput = screen.getByLabelText(/minimum price/i);

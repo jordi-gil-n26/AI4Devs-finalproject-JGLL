@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode } from "react";
 import { NavigationBar } from "@/components/shared/NavigationBar";
 import { ErrorBoundary } from "@/components/shared/ErrorBoundary";
+import { Footer } from "@/components/shared/Footer";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -31,6 +32,7 @@ export default function RootLayout({
         <QueryClientProvider client={queryClient}>
           <NavigationBar />
           <ErrorBoundary>{children}</ErrorBoundary>
+          <Footer />
         </QueryClientProvider>
       </body>
     </html>

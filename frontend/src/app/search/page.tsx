@@ -2,11 +2,13 @@
 
 import React, { Suspense, useCallback, useMemo, useState, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { SlidersHorizontal } from 'lucide-react';
 import { SearchBar, type SearchParams } from '@/components/search/SearchBar';
 import { FilterPanel } from '@/components/search/FilterPanel';
 import { PropertyCard } from '@/components/search/PropertyCard';
 import { MapView } from '@/components/search/MapView';
 import { EmptyState } from '@/components/search/EmptyState';
+import { Pagination } from '@/components/search/Pagination';
 import { PropertyCardSkeleton } from '@/components/shared/PropertyCardSkeleton';
 import { usePropertySearch, useGeocode } from '@/services/searchService';
 import type { SearchFilters, PropertySummary } from '@/types';
@@ -17,7 +19,7 @@ import type { SearchFilters, PropertySummary } from '@/types';
  * Composites all search components (SearchBar, FilterPanel, PropertyCard grid, MapView, EmptyState)
  * into a single results page with:
  * - URL query parameter syncing (bidirectional)
- * - Pagination support (prev/next buttons)
+ * - Numbered pagination (via the Pagination component)
  * - Filter management
  * - Responsive layout (desktop/tablet/mobile)
  *
@@ -36,6 +38,7 @@ function SearchPageContent() {
   const searchParams = useSearchParams();
   const [selectedPropertyId, setSelectedPropertyId] = useState<string | null>(null);
   const [hoveredPropertyId, setHoveredPropertyId] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
   const [viewport, setViewport] = useState({
     longitude: 2.1734,
     latitude: 41.3851,
@@ -212,124 +215,108 @@ function SearchPageContent() {
   );
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* SearchBar (sticky top) */}
-      <div className="sticky top-0 z-10 bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 py-4">
+    <div className="min-h-screen bg-canvas">
+      {/* SearchBar */}
+      <div className="border-b border-divider bg-canvas">
+        <div className="mx-auto max-w-6xl px-4 py-6">
           <SearchBar onSearch={handleSearch} />
         </div>
       </div>
 
-      {/* Main content grid */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Left sidebar: FilterPanel */}
-          <aside className="md:col-span-1">
-            <div className="sticky top-20">
-              <FilterPanel onFiltersChange={handleFiltersChange} />
-            </div>
-          </aside>
+      {/* Main content: two-pane layout */}
+      <main className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 md:flex-row">
+        {/* Left pane: filters + results */}
+        <div className="md:w-[55%]">
+          {/* Filters pill bar */}
+          <div className="mb-6">
+            <button
+              type="button"
+              onClick={() => setShowFilters((v) => !v)}
+              aria-expanded={showFilters}
+              className="inline-flex items-center gap-2 rounded-pill border border-border px-4 py-2 font-sans text-sm text-taupe transition-colors hover:text-ink"
+            >
+              <SlidersHorizontal size={16} aria-hidden /> Filters
+            </button>
 
-          {/* Center: Results */}
-          <main className="md:col-span-2">
-            {isLoading && (
-              <div className="grid grid-cols-1 gap-4" data-testid="property-grid-loading">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <PropertyCardSkeleton key={i} />
-                ))}
+            {showFilters && (
+              <div className="mt-4">
+                <FilterPanel onFiltersChange={handleFiltersChange} />
               </div>
             )}
+          </div>
 
-            {!isLoading && (!searchResults?.results || searchResults.results.length === 0) && (
-              <EmptyState />
-            )}
-
-            {!isLoading && searchResults?.results && searchResults.results.length > 0 && (
-              <>
-                {/* Property grid */}
-                <div
-                  ref={propertyGridRef}
-                  className="grid grid-cols-1 gap-4"
-                  data-testid="property-grid"
-                >
-                  {searchResults.results.map((property: PropertySummary) => (
-                    <div
-                      key={property.id}
-                      data-property-id={property.id}
-                      className={`transition-all ${
-                        selectedPropertyId === property.id ? 'ring-2 ring-blue-600' : ''
-                      }`}
-                    >
-                      <PropertyCard
-                        property={property}
-                        onClick={handlePropertyClick}
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                {/* Pagination controls */}
-                <div className="mt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
-                  <button
-                    onClick={() =>
-                      handlePageChange(searchResults.pagination.page - 1)
-                    }
-                    disabled={searchResults.pagination.page === 1}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Previous page"
-                  >
-                    Previous
-                  </button>
-
-                  <span className="text-sm text-gray-600">
-                    Page {searchResults.pagination.page} of{' '}
-                    {searchResults.pagination.total_pages}
-                  </span>
-
-                  <button
-                    onClick={() =>
-                      handlePageChange(searchResults.pagination.page + 1)
-                    }
-                    disabled={
-                      searchResults.pagination.page ===
-                      searchResults.pagination.total_pages
-                    }
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                    aria-label="Next page"
-                  >
-                    Next
-                  </button>
-                </div>
-
-                {/* Results count */}
-                <div className="mt-4 text-xs text-gray-500 text-center">
-                  Showing {(searchResults.pagination.page - 1) * searchResults.pagination.size + 1} -{' '}
-                  {Math.min(
-                    searchResults.pagination.page * searchResults.pagination.size,
-                    searchResults.pagination.total_results,
-                  )}{' '}
-                  of {searchResults.pagination.total_results} results
-                </div>
-              </>
-            )}
-          </main>
-
-          {/* Right sidebar: MapView */}
-          <aside className="md:col-span-1">
-            <div className="sticky top-20 h-96 rounded-lg overflow-hidden bg-gray-100">
-              <MapView
-                properties={searchResults?.results || []}
-                selectedPropertyId={selectedPropertyId || ''}
-                hoveredPropertyId={hoveredPropertyId || ''}
-                onPropertyClick={handleMapPropertyClick}
-                onPropertyHover={setHoveredPropertyId}
-                viewport={viewport}
-                onViewportChange={setViewport}
-              />
+          {isLoading && (
+            <div
+              className="grid grid-cols-1 gap-6 sm:grid-cols-2"
+              data-testid="property-grid-loading"
+            >
+              {Array.from({ length: 8 }).map((_, i) => (
+                <PropertyCardSkeleton key={i} />
+              ))}
             </div>
-          </aside>
+          )}
+
+          {!isLoading && (!searchResults?.results || searchResults.results.length === 0) && (
+            <EmptyState />
+          )}
+
+          {!isLoading && searchResults?.results && searchResults.results.length > 0 && (
+            <>
+              {/* Property grid */}
+              <div
+                ref={propertyGridRef}
+                className="grid grid-cols-1 gap-6 sm:grid-cols-2"
+                data-testid="property-grid"
+              >
+                {searchResults.results.map((property: PropertySummary) => (
+                  <div
+                    key={property.id}
+                    data-property-id={property.id}
+                    className={`transition-all ${
+                      selectedPropertyId === property.id ? 'ring-2 ring-terracotta' : ''
+                    }`}
+                  >
+                    <PropertyCard
+                      property={property}
+                      onClick={handlePropertyClick}
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination controls */}
+              <Pagination
+                page={searchResults.pagination.page}
+                totalPages={searchResults.pagination.total_pages}
+                onPageChange={handlePageChange}
+              />
+
+              {/* Results count */}
+              <div className="mt-4 text-center text-xs text-taupe">
+                Showing {(searchResults.pagination.page - 1) * searchResults.pagination.size + 1} -{' '}
+                {Math.min(
+                  searchResults.pagination.page * searchResults.pagination.size,
+                  searchResults.pagination.total_results,
+                )}{' '}
+                of {searchResults.pagination.total_results} results
+              </div>
+            </>
+          )}
         </div>
-      </div>
+
+        {/* Right pane: MapView */}
+        <aside className="h-96 overflow-hidden md:sticky md:top-[var(--nav-h)] md:h-[calc(100vh-var(--nav-h))] md:w-[45%]">
+          <MapView
+            properties={searchResults?.results || []}
+            selectedPropertyId={selectedPropertyId || ''}
+            hoveredPropertyId={hoveredPropertyId || ''}
+            onPropertyClick={handleMapPropertyClick}
+            onPropertyHover={setHoveredPropertyId}
+            viewport={viewport}
+            onViewportChange={setViewport}
+          />
+        </aside>
+      </main>
     </div>
   );
 }

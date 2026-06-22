@@ -72,13 +72,13 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
   };
 
   return (
-    <div className="w-full max-w-sm bg-white rounded-lg shadow-md p-6 space-y-6">
+    <div className="w-full bg-surface rounded-card border border-border p-6 space-y-6">
       {/* Price Range Section */}
       <div>
-        <h3 className="text-lg font-semibold mb-3">Price Range</h3>
+        <h3 className="text-lg font-serif text-ink mb-3">Price Range</h3>
         <div className="space-y-3">
           <div>
-            <label htmlFor="min-price" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="min-price" className="block text-sm font-medium text-taupe mb-1">
               Minimum Price (EUR)
             </label>
             <input
@@ -87,11 +87,11 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
               placeholder="Min"
               value={minPrice ?? ''}
               onChange={e => handleMinPriceChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded-pill px-3 py-2 font-sans text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
             />
           </div>
           <div>
-            <label htmlFor="max-price" className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="max-price" className="block text-sm font-medium text-taupe mb-1">
               Maximum Price (EUR)
             </label>
             <input
@@ -100,7 +100,7 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
               placeholder="Max"
               value={maxPrice ?? ''}
               onChange={e => handleMaxPriceChange(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border border-border rounded-pill px-3 py-2 font-sans text-ink focus:outline-none focus:ring-2 focus:ring-terracotta"
             />
           </div>
         </div>
@@ -108,7 +108,7 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
 
       {/* Property Type Section */}
       <div>
-        <h3 className="text-lg font-semibold mb-3">Property Type</h3>
+        <h3 className="text-lg font-serif text-ink mb-3">Property Type</h3>
         <div className="space-y-2">
           {PROPERTY_TYPES.map(type => (
             <label key={type} className="flex items-center space-x-2">
@@ -116,9 +116,9 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
                 type="checkbox"
                 checked={propertyType === type}
                 onChange={() => handlePropertyTypeChange(type)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                className="w-4 h-4 accent-terracotta border-border rounded"
               />
-              <span className="text-sm text-gray-700 capitalize">{type}</span>
+              <span className="text-sm text-taupe capitalize">{type}</span>
             </label>
           ))}
         </div>
@@ -126,16 +126,16 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
 
       {/* Bedrooms Section */}
       <div>
-        <h3 className="text-lg font-semibold mb-3">Bedrooms</h3>
+        <h3 className="text-lg font-serif text-ink mb-3">Bedrooms</h3>
         <div className="grid grid-cols-4 gap-2">
           {BEDROOM_OPTIONS.map(value => (
             <button
               key={value}
               onClick={() => handleBedroomsChange(value)}
-              className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+              className={`px-3 py-2 text-sm font-medium rounded-pill transition-colors ${
                 bedrooms === value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  ? 'bg-terracotta text-white'
+                  : 'bg-canvas text-taupe hover:bg-terracotta-tint'
               }`}
             >
               {value}+
@@ -146,7 +146,7 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
 
       {/* Amenities Section */}
       <div>
-        <h3 className="text-lg font-semibold mb-3">Amenities</h3>
+        <h3 className="text-lg font-serif text-ink mb-3">Amenities</h3>
         <div className="space-y-2">
           {AMENITIES.map(amenity => (
             <label key={amenity} className="flex items-center space-x-2">
@@ -154,9 +154,9 @@ export function FilterPanel({ onFiltersChange }: FilterPanelProps) {
                 type="checkbox"
                 checked={amenities.includes(amenity)}
                 onChange={() => handleAmenityChange(amenity)}
-                className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                className="w-4 h-4 accent-terracotta border-border rounded"
               />
-              <span className="text-sm text-gray-700">{amenity}</span>
+              <span className="text-sm text-ink">{amenity}</span>
             </label>
           ))}
         </div>

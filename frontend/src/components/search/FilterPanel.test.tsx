@@ -211,12 +211,12 @@ describe('FilterPanel Component', () => {
     render(<FilterPanel onFiltersChange={mockOnFiltersChange} />);
 
     const twoBedroomsButton = screen.getByRole('button', { name: /2\+/i });
-    expect(twoBedroomsButton).not.toHaveClass('bg-blue-600');
+    expect(twoBedroomsButton).not.toHaveClass('bg-terracotta');
 
     await user.click(twoBedroomsButton);
-    expect(twoBedroomsButton).toHaveClass('bg-blue-600');
+    expect(twoBedroomsButton).toHaveClass('bg-terracotta');
 
     await user.click(twoBedroomsButton);
-    expect(twoBedroomsButton).not.toHaveClass('bg-blue-600');
+    expect(twoBedroomsButton).not.toHaveClass('bg-terracotta');
   });
 });

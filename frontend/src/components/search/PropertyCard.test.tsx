@@ -45,19 +45,33 @@ describe('PropertyCard Component', () => {
     expect(screen.getByText(/€120/)).toBeInTheDocument();
   });
 
-  it('renders rating with stars', () => {
-    render(<PropertyCard property={mockProperty} onClick={() => {}} />);
+  it('renders rating as single star with numeric value', () => {
+    const { container } = render(<PropertyCard property={mockProperty} onClick={() => {}} />);
 
-    expect(screen.getByText('4.8')).toBeInTheDocument();
-    expect(screen.getByText(/12 reviews/i)).toBeInTheDocument();
+    // Editorial style: single star + toFixed(2) (both aria-hidden; sr-only span carries accessible text)
+    // Use container queries because aria-hidden elements are excluded from accessible getByText
+    const ratingSpan = container.querySelector('[aria-hidden="true"].font-sans');
+    expect(ratingSpan).toBeInTheDocument();
+    expect(ratingSpan?.textContent).toBe('4.80');
+    // Single star present (aria-hidden)
+    const starSpan = container.querySelector('[aria-hidden="true"].text-terracotta');
+    expect(starSpan).toBeInTheDocument();
+    expect(starSpan?.textContent).toBe('★');
   });
 
-  it('displays 5 star elements for rating display', () => {
+  it('shows "night" label in price', () => {
     render(<PropertyCard property={mockProperty} onClick={() => {}} />);
 
-    const stars = screen.getAllByRole('img', { hidden: true });
-    // Should have stars for rating visualization
-    expect(stars.length).toBeGreaterThan(0);
+    expect(screen.getByText('night')).toBeInTheDocument();
+  });
+
+  it('renders city and country as the location heading', () => {
+    render(<PropertyCard property={mockProperty} onClick={() => {}} />);
+
+    // Editorial: location is an h3 heading with font-serif
+    const heading = screen.getByRole('heading', { name: /barcelona, spain/i });
+    expect(heading).toBeInTheDocument();
+    expect(heading.className).toContain('font-serif');
   });
 
   it('calls onClick when card is clicked', async () => {
@@ -72,12 +86,19 @@ describe('PropertyCard Component', () => {
     expect(handleClick).toHaveBeenCalledWith(mockProperty.id);
   });
 
-  it('renders property with no rating gracefully', () => {
+  it('exposes the rating to assistive tech with context', () => {
+    render(<PropertyCard property={mockProperty} onClick={() => {}} />);
+    expect(
+      screen.getByText(`Rated ${mockProperty.avg_rating!.toFixed(2)} out of 5`)
+    ).toBeInTheDocument();
+  });
+
+  it('renders "New" when avg_rating is null', () => {
     const propertyNoRating = { ...mockProperty, avg_rating: null };
 
     render(<PropertyCard property={propertyNoRating} onClick={() => {}} />);
 
-    expect(screen.getByText(/no ratings yet/i)).toBeInTheDocument();
+    expect(screen.getByText('New')).toBeInTheDocument();
   });
 
   it('renders city location', () => {

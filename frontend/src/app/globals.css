@@ -3,6 +3,7 @@
 :root {
   --background: #faf8f5;
   --foreground: #1b1c1a;
+  --nav-h: 56px;
 }
 
 @theme inline {

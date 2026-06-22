@@ -118,109 +118,107 @@ export const SearchBar: React.FC<SearchBarProps> = ({ onSearch }) => {
     <form
       onSubmit={handleSubmit}
       data-testid="search-form"
-      className="w-full bg-white rounded-lg shadow-lg p-6"
+      className="w-full rounded-card md:rounded-pill border border-border bg-surface p-2 md:flex md:items-center md:gap-2"
     >
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        {/* Location Input */}
-        <div className="md:col-span-2">
-          <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-            Where
-          </label>
-          <input
-            id="location"
-            type="text"
-            data-testid="search-location"
-            placeholder="Where are you going?"
-            value={location}
-            onChange={handleLocationChange}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      {/* Location Input */}
+      <div className="flex flex-col gap-1 flex-1 px-2 py-1">
+        <label htmlFor="location" className="font-sans text-xs uppercase tracking-[0.1em] text-taupe">
+          Where
+        </label>
+        <input
+          id="location"
+          type="text"
+          data-testid="search-location"
+          placeholder="Where are you going?"
+          value={location}
+          onChange={handleLocationChange}
+          className="bg-transparent font-sans text-ink placeholder:text-taupe focus:outline-none focus:ring-2 focus:ring-terracotta rounded-pill px-4 py-2"
+        />
+      </div>
 
-        {/* Check-in Date Picker */}
-        <div>
-          <label htmlFor="check-in" className="block text-sm font-medium text-gray-700 mb-1">
-            Check-in
-          </label>
-          <input
-            id="check-in"
-            type="date"
-            min={todayIso}
-            value={checkInDate}
-            onChange={handleCheckInChange}
-            onBlur={() => setError(validateDates(checkInDate, checkOutDate))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      {/* Check-in Date Picker */}
+      <div className="flex flex-col gap-1 flex-1 px-2 py-1">
+        <label htmlFor="check-in" className="font-sans text-xs uppercase tracking-[0.1em] text-taupe">
+          Check-in
+        </label>
+        <input
+          id="check-in"
+          type="date"
+          min={todayIso}
+          value={checkInDate}
+          onChange={handleCheckInChange}
+          onBlur={() => setError(validateDates(checkInDate, checkOutDate))}
+          className="bg-transparent font-sans text-ink placeholder:text-taupe focus:outline-none focus:ring-2 focus:ring-terracotta rounded-pill px-4 py-2"
+        />
+      </div>
 
-        {/* Check-out Date Picker */}
-        <div>
-          <label htmlFor="check-out" className="block text-sm font-medium text-gray-700 mb-1">
-            Check-out
-          </label>
-          <input
-            id="check-out"
-            type="date"
-            min={checkInDate}
-            value={checkOutDate}
-            onChange={handleCheckOutChange}
-            onBlur={() => setError(validateDates(checkInDate, checkOutDate))}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-        </div>
+      {/* Check-out Date Picker */}
+      <div className="flex flex-col gap-1 flex-1 px-2 py-1">
+        <label htmlFor="check-out" className="font-sans text-xs uppercase tracking-[0.1em] text-taupe">
+          Check-out
+        </label>
+        <input
+          id="check-out"
+          type="date"
+          min={checkInDate}
+          value={checkOutDate}
+          onChange={handleCheckOutChange}
+          onBlur={() => setError(validateDates(checkInDate, checkOutDate))}
+          className="bg-transparent font-sans text-ink placeholder:text-taupe focus:outline-none focus:ring-2 focus:ring-terracotta rounded-pill px-4 py-2"
+        />
+      </div>
 
-        {/* Guests Counter */}
-        <div>
-          <label htmlFor="guests" className="block text-sm font-medium text-gray-700 mb-1">
-            Guests
-          </label>
-          <div className="flex items-center border border-gray-300 rounded-lg">
-            <button
-              type="button"
-              onClick={handleDecrement}
-              className="px-3 py-2 text-gray-600 hover:bg-gray-100"
-              aria-label="Decrease guests"
-            >
-              -
-            </button>
-            <input
-              id="guests"
-              type="number"
-              min="1"
-              max="20"
-              value={guests}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                if (!isNaN(value) && value >= 1 && value <= 20) {
-                  setGuests(value);
-                }
-              }}
-              className="flex-1 text-center border-none focus:outline-none py-2"
-            />
-            <button
-              type="button"
-              onClick={handleIncrement}
-              className="px-3 py-2 text-gray-600 hover:bg-gray-100"
-              aria-label="Increase guests"
-            >
-              +
-            </button>
-          </div>
+      {/* Guests Counter */}
+      <div className="flex flex-col gap-1 px-2 py-1">
+        <label htmlFor="guests" className="font-sans text-xs uppercase tracking-[0.1em] text-taupe">
+          Guests
+        </label>
+        <div className="flex items-center rounded-pill border border-border">
+          <button
+            type="button"
+            onClick={handleDecrement}
+            className="px-3 py-2 text-taupe hover:bg-terracotta-tint rounded-pill transition-colors"
+            aria-label="Decrease guests"
+          >
+            -
+          </button>
+          <input
+            id="guests"
+            type="number"
+            min="1"
+            max="20"
+            value={guests}
+            onChange={(e) => {
+              const value = parseInt(e.target.value, 10);
+              if (!isNaN(value) && value >= 1 && value <= 20) {
+                setGuests(value);
+              }
+            }}
+            className="flex-1 text-center border-none focus:outline-none py-2 bg-transparent font-sans text-ink"
+          />
+          <button
+            type="button"
+            onClick={handleIncrement}
+            className="px-3 py-2 text-taupe hover:bg-terracotta-tint rounded-pill transition-colors"
+            aria-label="Increase guests"
+          >
+            +
+          </button>
         </div>
       </div>
 
       {error && (
-        <p data-testid="search-error" role="alert" className="mt-3 text-sm text-red-600">
+        <p data-testid="search-error" role="alert" className="mt-3 text-sm text-terracotta md:mt-0 px-2">
           {error}
         </p>
       )}
 
       {/* Search Button */}
-      <div className="mt-6 flex justify-center md:justify-end">
+      <div className="flex justify-center md:justify-end px-2 py-1">
         <button
           type="submit"
           data-testid="search-submit"
-          className="px-8 py-3 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition-colors"
+          className="rounded-pill bg-terracotta px-8 py-3 font-sans text-sm font-semibold text-white hover:opacity-90 transition-colors"
         >
           Search
         </button>
