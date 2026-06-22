@@ -70,7 +70,7 @@ export function PriceBreakdown({ propertyId, checkIn, checkOut }: PriceBreakdown
   if (error || !data) {
     return (
       <div
-        className="rounded-card border border-border p-5 bg-terracotta-tint text-terracotta text-sm"
+        className="rounded-card border border-terracotta/30 p-5 bg-terracotta-tint text-terracotta text-sm"
         data-testid="price-breakdown-error"
         role="alert"
       >

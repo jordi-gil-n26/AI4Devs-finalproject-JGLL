@@ -113,7 +113,7 @@ export function AmenityList({ amenities }: AmenityListProps) {
         <button
           type="button"
           onClick={() => setExpanded((prev) => !prev)}
-          className="mt-4 text-sm font-medium text-terracotta hover:text-terracotta underline underline-offset-2 transition-colors"
+          className="mt-4 text-sm font-medium text-terracotta hover:opacity-70 underline underline-offset-2 transition-opacity"
           aria-expanded={expanded}
         >
           {expanded ? 'Show less' : `Show all (${amenities.length})`}

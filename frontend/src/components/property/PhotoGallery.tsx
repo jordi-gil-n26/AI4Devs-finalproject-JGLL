@@ -28,7 +28,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
   if (!photos || photos.length === 0) {
     return (
       <div
-        className="flex items-center justify-center bg-canvas rounded-card h-96 text-taupe"
+        className="flex items-center justify-center bg-border rounded-card h-96 text-taupe"
         data-testid="photo-gallery-placeholder"
       >
         <div className="text-center">
