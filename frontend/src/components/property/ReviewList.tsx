@@ -59,7 +59,7 @@ function ReviewCard({ review }: { review: Review }) {
       </div>
 
       {review.comment && (
-        <p className="text-sm text-taupe leading-relaxed">{review.comment}</p>
+        <p className="text-sm text-ink leading-relaxed">{review.comment}</p>
       )}
     </div>
   );

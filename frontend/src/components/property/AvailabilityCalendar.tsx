@@ -143,7 +143,7 @@ function MonthCalendar({
             cellClasses += 'text-taupe cursor-not-allowed ';
             if (reason === 'booked') cellClasses += 'bg-terracotta-tint/40 ';
             else if (reason === 'blocked') cellClasses += 'bg-canvas ';
-            else if (reason === 'held') cellClasses += 'bg-terracotta-tint/20 ';
+            else if (reason === 'held') cellClasses += 'bg-canvas ';
           } else if (isSelected) {
             cellClasses += 'bg-terracotta text-white font-semibold hover:bg-terracotta cursor-pointer ';
           } else if (inRange) {
@@ -172,8 +172,8 @@ function MonthCalendar({
                     reason === 'booked'
                       ? 'bg-taupe'
                       : reason === 'blocked'
-                        ? 'bg-border'
-                        : 'bg-terracotta'
+                        ? 'bg-ink'
+                        : 'border border-terracotta bg-transparent'
                   }`}
                   aria-hidden
                 />
@@ -278,11 +278,11 @@ export function AvailabilityCalendar({
           Booked
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-border inline-block" aria-hidden />
+          <span className="w-3 h-3 rounded-full bg-ink inline-block" aria-hidden />
           Blocked
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-terracotta inline-block" aria-hidden />
+          <span className="w-3 h-3 rounded-full border border-terracotta bg-transparent inline-block" aria-hidden />
           Held
         </div>
       </div>
