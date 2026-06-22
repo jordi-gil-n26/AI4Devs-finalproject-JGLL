@@ -2,19 +2,14 @@
 
 import React from 'react';
 import { ArrowRight } from 'lucide-react';
-import type { BookingSummary, BookingStatus } from '@/types';
+import type { BookingSummary } from '@/types';
 import { formatDate } from '@/lib/formatDate';
+import { bookingStatusBadgeClass } from '@/lib/bookingStatus';
 
 interface TripCardProps {
   trip: BookingSummary;
   onClick: (bookingId: string) => void;
 }
-
-const STATUS_STYLES: Record<BookingStatus, string> = {
-  confirmed: 'bg-terracotta-tint text-terracotta',
-  cancelled: 'border border-border bg-surface text-taupe',
-  completed: 'bg-canvas text-taupe',
-};
 
 export function TripCard({ trip, onClick }: TripCardProps) {
   return (
@@ -42,7 +37,7 @@ export function TripCard({ trip, onClick }: TripCardProps) {
           <p className="uppercase tracking-wide text-xs text-taupe">{trip.city}</p>
           <span
             data-testid="trip-status"
-            className={`rounded-pill px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${STATUS_STYLES[trip.status]}`}
+            className={bookingStatusBadgeClass(trip.status)}
           >
             {trip.status}
           </span>

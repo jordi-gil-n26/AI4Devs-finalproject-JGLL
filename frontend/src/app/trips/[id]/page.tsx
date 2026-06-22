@@ -6,13 +6,7 @@ import { ArrowLeft, MapPin } from 'lucide-react';
 import { CancellationModal } from '@/components/booking/CancellationModal';
 import { useBookingDetail, useCancelBooking } from '@/services/tripsService';
 import { formatDate } from '@/lib/formatDate';
-import type { BookingStatus } from '@/types';
-
-const STATUS_STYLES: Record<BookingStatus, string> = {
-  confirmed: 'bg-terracotta-tint text-terracotta',
-  cancelled: 'border border-border bg-surface text-taupe',
-  completed: 'bg-canvas text-taupe',
-};
+import { bookingStatusBadgeClass } from '@/lib/bookingStatus';
 
 export default function TripDetailPage() {
   const params = useParams();
@@ -83,7 +77,7 @@ export default function TripDetailPage() {
         <div className="flex flex-col gap-3 p-5">
           <div className="flex items-start justify-between gap-2">
             <h1 className="font-serif text-ink text-xl">{data.property.title}</h1>
-            <span className={`rounded-pill px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${STATUS_STYLES[data.status]}`}>
+            <span className={bookingStatusBadgeClass(data.status)}>
               {data.status}
             </span>
           </div>
