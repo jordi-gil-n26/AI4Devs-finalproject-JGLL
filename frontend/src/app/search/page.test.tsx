@@ -194,20 +194,16 @@ describe('SearchPage', () => {
     const mockPush = vi.fn();
     (useRouter as ReturnType<typeof vi.fn>).mockReturnValue({
       push: mockPush,
+      pathname: '/search',
     });
 
     render(<SearchPage />, { wrapper: createWrapper() });
 
-    // Click on a property card button
-    const propertyButtons = screen.getAllByRole('button');
-    // Find a property card button (not pagination or filter button)
-    const propertyButton = propertyButtons.find(
-      (btn) => btn.getAttribute('aria-label')?.includes('View') !== false,
-    );
+    // Click the first property card button by its accessible name
+    const propertyButton = screen.getByRole('button', { name: 'View Beautiful Barcelona Apartment' });
+    fireEvent.click(propertyButton);
 
-    if (propertyButton) {
-      fireEvent.click(propertyButton);
-    }
+    expect(mockPush).toHaveBeenCalledWith('/property/1');
   });
 
   it('displays sticky SearchBar at top', () => {

@@ -19,7 +19,7 @@ import type { SearchFilters, PropertySummary } from '@/types';
  * Composites all search components (SearchBar, FilterPanel, PropertyCard grid, MapView, EmptyState)
  * into a single results page with:
  * - URL query parameter syncing (bidirectional)
- * - Pagination support (prev/next buttons)
+ * - Numbered pagination (via the Pagination component)
  * - Filter management
  * - Responsive layout (desktop/tablet/mobile)
  *
