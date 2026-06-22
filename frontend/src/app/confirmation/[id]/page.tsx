@@ -2,8 +2,35 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { CheckCircle, Calendar, Home } from 'lucide-react';
+import { Check } from 'lucide-react';
 import type { ConfirmationSessionData } from '@/types/booking';
+
+const MONTHS = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+];
+
+/** Formats a "YYYY-MM-DD" string as e.g. "Jul 10". */
+function formatDay(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map((p) => parseInt(p, 10));
+  if (!year || !month || !day) return isoDate;
+  const monthName = MONTHS[month - 1] ?? '';
+  return `${monthName} ${day}`;
+}
+
+/** Returns the 4-digit year from a "YYYY-MM-DD" string. */
+function formatYear(isoDate: string): string {
+  return isoDate.split('-')[0] ?? '';
+}
+
+/**
+ * Formats a date range, collapsing the year to the end.
+ * e.g. ("2026-07-10", "2026-07-13") → "Jul 10 – Jul 13, 2026".
+ */
+function formatDateRange(checkIn: string, checkOut: string): string {
+  if (!checkIn || !checkOut) return '';
+  return `${formatDay(checkIn)} – ${formatDay(checkOut)}, ${formatYear(checkOut)}`;
+}
 
 /**
  * Confirmation Page — /confirmation/[id]
@@ -15,11 +42,10 @@ import type { ConfirmationSessionData } from '@/types/booking';
  * payment.  Falls back to a generic success message if the key is missing
  * (e.g. direct navigation / session cleared).
  *
- * Displays:
- *   - "Booking Confirmed!" heading with green checkmark
- *   - Reference number (large, prominent)
- *   - Property name, dates, total paid
- *   - Two CTAs: "View My Trips" (coming soon) and "Back to Search"
+ * Displays an editorial success card:
+ *   - Terracotta check badge + serif "Your trip is booked!" heading
+ *   - Stay-details card: property thumbnail, title, reference, dates, total
+ *   - Two CTAs: "View in My Trips" and "Back to Search"
  */
 export default function ConfirmationPage() {
   const params = useParams();
@@ -47,112 +73,110 @@ export default function ConfirmationPage() {
 
   if (!loaded) {
     return (
-      <div className="max-w-lg mx-auto px-4 py-16 text-center" data-testid="confirmation-loading">
+      <div className="max-w-xl mx-auto px-4 py-16 text-center" data-testid="confirmation-loading">
         <div className="animate-pulse space-y-4">
-          <div className="h-16 w-16 bg-gray-200 rounded-full mx-auto" />
-          <div className="h-6 bg-gray-200 rounded w-48 mx-auto" />
+          <div className="h-16 w-16 bg-border rounded-card mx-auto" />
+          <div className="h-6 bg-border rounded w-48 mx-auto" />
         </div>
       </div>
     );
   }
 
   return (
-    <div
-      className="max-w-lg mx-auto px-4 py-12 text-center"
-      data-testid="confirmation-page"
-    >
-      {/* Success icon */}
-      <div className="flex justify-center mb-4">
-        <CheckCircle
-          className="w-16 h-16 text-green-500"
-          aria-hidden
-          data-testid="confirmation-icon"
-        />
-      </div>
-
-      {/* Heading */}
-      <h1 className="text-3xl font-bold text-gray-900 mb-2">Booking Confirmed!</h1>
-      <p className="text-gray-500 mb-6">
-        {data
-          ? 'Your reservation is confirmed. Check your email for details.'
-          : 'Your payment was processed successfully.'}
-      </p>
-
-      {/* Reference number */}
-      {data?.reference_number && (
-        <div
-          className="mb-6 inline-block bg-blue-50 border border-blue-200 rounded-xl px-6 py-4"
-          data-testid="reference-number-block"
-        >
-          <p className="text-xs text-blue-600 uppercase tracking-wider font-medium mb-1">
-            Booking reference
-          </p>
-          <p
-            className="text-2xl font-bold text-blue-700 tracking-widest"
-            data-testid="reference-number"
+    <div className="max-w-xl mx-auto px-4 py-12">
+      <div
+        className="bg-surface rounded-card border border-border p-8 sm:p-10 text-center"
+        data-testid="confirmation-page"
+      >
+        {/* Success badge */}
+        <div className="flex justify-center mb-6">
+          <div
+            className="inline-flex items-center justify-center w-16 h-16 rounded-card bg-terracotta"
+            data-testid="confirmation-icon"
           >
-            {data.reference_number}
-          </p>
-        </div>
-      )}
-
-      {/* Stay details card */}
-      {data && (
-        <div
-          className="mb-8 text-left bg-white border border-gray-200 rounded-xl p-5 space-y-3"
-          data-testid="confirmation-details"
-        >
-          {/* Property name */}
-          <div className="flex items-start gap-3">
-            <Home className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" aria-hidden />
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Property</p>
-              <p className="text-sm font-medium text-gray-900">{data.property_title}</p>
-            </div>
-          </div>
-
-          {/* Dates */}
-          <div className="flex items-start gap-3">
-            <Calendar className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" aria-hidden />
-            <div>
-              <p className="text-xs text-gray-500 mb-0.5">Dates</p>
-              <p className="text-sm font-medium text-gray-900">
-                {data.check_in} → {data.check_out}
-              </p>
-            </div>
-          </div>
-
-          {/* Total paid */}
-          <div className="border-t pt-3 flex justify-between items-center">
-            <span className="text-sm text-gray-500">Total paid</span>
-            <span className="text-base font-semibold text-gray-900" data-testid="total-paid">
-              €{data.total_eur.toFixed(2)}
-            </span>
+            <Check className="w-8 h-8 text-white" aria-hidden />
           </div>
         </div>
-      )}
 
-      {/* CTAs */}
-      <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        {/* "View My Trips" */}
-        <button
-          type="button"
-          onClick={() => router.push('/trips')}
-          className="py-3 px-6 border border-gray-300 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
-          data-testid="view-trips-button"
-        >
-          View My Trips
-        </button>
+        {/* Heading */}
+        <h1 className="text-3xl font-serif text-ink mb-2">Your trip is booked!</h1>
+        <p className="text-taupe mb-6">
+          {data
+            ? 'A confirmation email has been sent to your inbox.'
+            : 'Your payment was processed successfully.'}
+        </p>
 
-        {/* Back to Search */}
-        <button
-          type="button"
-          onClick={() => router.push('/')}
-          className="py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-colors"
-          data-testid="back-to-search-button"
-        >
-          Back to Search
-        </button>
+        {/* Stay details card */}
+        {data && (
+          <div
+            className="rounded-card border border-border bg-canvas p-5 text-left"
+            data-testid="confirmation-details"
+          >
+            {/* Property thumbnail + title + reference */}
+            <div className="flex items-center gap-4">
+              {data.property_photo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={data.property_photo_url}
+                  alt={data.property_title}
+                  className="w-16 h-16 rounded-card object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-card bg-border flex-shrink-0" aria-hidden />
+              )}
+              <div>
+                <p className="font-serif text-ink">{data.property_title}</p>
+                {data.reference_number && (
+                  <p
+                    className="text-xs uppercase tracking-wide text-terracotta font-medium"
+                    data-testid="reference-number-block"
+                  >
+                    REF: <span data-testid="reference-number">{data.reference_number}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="border-t border-divider my-4" />
+
+            {/* Dates + total */}
+            <div className="flex justify-between">
+              <div>
+                <p className="uppercase tracking-wide text-xs text-taupe">Dates</p>
+                <p className="text-ink text-sm mt-1">
+                  {formatDateRange(data.check_in, data.check_out)}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="uppercase tracking-wide text-xs text-taupe">Total paid</p>
+                <p className="text-ink font-semibold mt-1" data-testid="total-paid">
+                  €{data.total_eur.toFixed(2)}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* CTAs */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center mt-8">
+          <button
+            type="button"
+            onClick={() => router.push('/trips')}
+            className="py-3 px-6 bg-terracotta text-white font-semibold rounded-pill hover:opacity-90 transition-colors"
+            data-testid="view-trips-button"
+          >
+            View in My Trips
+          </button>
+
+          <button
+            type="button"
+            onClick={() => router.push('/')}
+            className="py-3 px-6 rounded-pill border border-border bg-canvas text-ink font-semibold hover:bg-terracotta-tint transition-colors"
+            data-testid="back-to-search-button"
+          >
+            Back to Search
+          </button>
+        </div>
       </div>
     </div>
   );

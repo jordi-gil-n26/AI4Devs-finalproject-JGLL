@@ -63,11 +63,11 @@ describe('ConfirmationPage', () => {
     );
   });
 
-  it('shows Booking Confirmed heading', async () => {
+  it('shows the booked heading', async () => {
     setSessionData(mockSessionData);
     render(<ConfirmationPage />);
     await waitFor(() =>
-      expect(screen.getByText(/booking confirmed/i)).toBeInTheDocument(),
+      expect(screen.getByText(/your trip is booked/i)).toBeInTheDocument(),
     );
   });
 
@@ -99,8 +99,7 @@ describe('ConfirmationPage', () => {
     setSessionData(mockSessionData);
     render(<ConfirmationPage />);
     await waitFor(() => {
-      expect(screen.getByText(/2026-07-10/)).toBeInTheDocument();
-      expect(screen.getByText(/2026-07-13/)).toBeInTheDocument();
+      expect(screen.getByText(/Jul 10 – Jul 13, 2026/)).toBeInTheDocument();
     });
   });
 
@@ -151,7 +150,7 @@ describe('ConfirmationPage', () => {
       expect(screen.getByTestId('confirmation-page')).toBeInTheDocument(),
     );
     // Heading still shows
-    expect(screen.getByText(/booking confirmed/i)).toBeInTheDocument();
+    expect(screen.getByText(/your trip is booked/i)).toBeInTheDocument();
     // But no reference number block
     expect(screen.queryByTestId('reference-number-block')).not.toBeInTheDocument();
     // And no details card
