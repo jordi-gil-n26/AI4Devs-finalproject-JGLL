@@ -21,18 +21,25 @@ function isoDate(daysFromNow: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+// Hands out a fresh, non-overlapping 3-night window per booking so the two
+// journeys (which book the same seeded property) can never collide on dates.
+// Windows start at +46 days (clear of the seed bookings at <= +45) and step by
+// 5, staying inside the +89-day seeded availability horizon. Each call advances
+// the cursor; a Playwright retry simply takes the next free window.
+let nextStayOffset = 46;
+function nextStayWindow(): { checkIn: string; checkOut: string } {
+  const offset = nextStayOffset;
+  nextStayOffset += 5;
+  return { checkIn: isoDate(offset), checkOut: isoDate(offset + 3) };
+}
+
 /**
  * Registers a fresh guest and books + confirms a far-future stay (>48h out, so
  * cancellation grants a full refund), leaving the page on `/confirmation/{id}`.
  */
 async function registerAndBookConfirmedStay(page: Page): Promise<void> {
   const email = `e2e-${Date.now()}@example.com`;
-  // 46..85 days out: inside the +89-day seeded availability window and clear of
-  // the seed bookings (which end at +45). A wide per-run offset avoids collisions
-  // when re-running against a persistent local stack; CI uses a fresh DB.
-  const offset = 46 + (Date.now() % 40);
-  const checkIn = isoDate(offset);
-  const checkOut = isoDate(offset + 3);
+  const { checkIn, checkOut } = nextStayWindow();
 
   // 1. Register → lands on /search
   await page.goto('/register');
