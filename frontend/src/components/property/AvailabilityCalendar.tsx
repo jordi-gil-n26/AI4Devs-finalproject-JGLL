@@ -85,25 +85,25 @@ function MonthCalendar({
           <button
             type="button"
             onClick={onPrev}
-            className="p-1 rounded hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="p-1 rounded hover:bg-canvas focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
             aria-label="Previous month"
           >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
+            <ChevronLeft className="w-5 h-5 text-ink" />
           </button>
         ) : (
           <div className="w-7" />
         )}
-        <h3 className="text-sm font-semibold text-gray-800">
+        <h3 className="text-sm font-semibold text-ink">
           {MONTHS[month]} {year}
         </h3>
         {showNext ? (
           <button
             type="button"
             onClick={onNext}
-            className="p-1 rounded hover:bg-gray-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+            className="p-1 rounded hover:bg-canvas focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
             aria-label="Next month"
           >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
+            <ChevronRight className="w-5 h-5 text-ink" />
           </button>
         ) : (
           <div className="w-7" />
@@ -113,7 +113,7 @@ function MonthCalendar({
       {/* Day-of-week headers */}
       <div className="grid grid-cols-7 mb-1">
         {DAYS.map((d) => (
-          <div key={d} className="text-center text-xs font-medium text-gray-500 py-1">
+          <div key={d} className="text-center text-xs font-medium text-taupe py-1">
             {d}
           </div>
         ))}
@@ -140,16 +140,16 @@ function MonthCalendar({
             'relative h-9 w-full flex items-center justify-center rounded-full text-sm transition-colors ';
 
           if (isDisabled) {
-            cellClasses += 'text-gray-300 cursor-not-allowed ';
-            if (reason === 'booked') cellClasses += 'bg-red-50 ';
-            else if (reason === 'blocked') cellClasses += 'bg-gray-100 ';
-            else if (reason === 'held') cellClasses += 'bg-yellow-50 ';
+            cellClasses += 'text-taupe cursor-not-allowed ';
+            if (reason === 'booked') cellClasses += 'bg-terracotta-tint/40 ';
+            else if (reason === 'blocked') cellClasses += 'bg-canvas ';
+            else if (reason === 'held') cellClasses += 'bg-canvas ';
           } else if (isSelected) {
-            cellClasses += 'bg-blue-600 text-white font-semibold hover:bg-blue-700 cursor-pointer ';
+            cellClasses += 'bg-terracotta text-white font-semibold cursor-pointer ';
           } else if (inRange) {
-            cellClasses += 'bg-blue-100 text-blue-900 rounded-none hover:bg-blue-200 cursor-pointer ';
+            cellClasses += 'bg-terracotta-tint text-ink rounded-none cursor-pointer ';
           } else {
-            cellClasses += 'text-gray-800 hover:bg-gray-100 cursor-pointer ';
+            cellClasses += 'text-ink hover:bg-canvas cursor-pointer ';
           }
 
           return (
@@ -170,10 +170,10 @@ function MonthCalendar({
                 <span
                   className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${
                     reason === 'booked'
-                      ? 'bg-red-400'
+                      ? 'bg-taupe'
                       : reason === 'blocked'
-                        ? 'bg-gray-400'
-                        : 'bg-yellow-400'
+                        ? 'bg-ink'
+                        : 'border border-terracotta bg-transparent'
                   }`}
                   aria-hidden
                 />
@@ -272,17 +272,17 @@ export function AvailabilityCalendar({
   return (
     <div data-testid="availability-calendar">
       {/* Legend */}
-      <div className="flex flex-wrap gap-4 mb-4 text-xs text-gray-600">
+      <div className="flex flex-wrap gap-4 mb-4 text-xs text-taupe">
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-red-400 inline-block" aria-hidden />
+          <span className="w-3 h-3 rounded-full bg-taupe inline-block" aria-hidden />
           Booked
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-gray-400 inline-block" aria-hidden />
+          <span className="w-3 h-3 rounded-full bg-ink inline-block" aria-hidden />
           Blocked
         </div>
         <div className="flex items-center gap-1">
-          <span className="w-3 h-3 rounded-full bg-yellow-400 inline-block" aria-hidden />
+          <span className="w-3 h-3 rounded-full border border-terracotta bg-transparent inline-block" aria-hidden />
           Held
         </div>
       </div>
@@ -317,7 +317,7 @@ export function AvailabilityCalendar({
 
       {/* Current selection summary */}
       {(checkIn || checkOut) && (
-        <div className="mt-4 text-sm text-gray-700">
+        <div className="mt-4 text-sm text-taupe">
           {checkIn && (
             <span>
               Check-in: <strong>{checkIn}</strong>

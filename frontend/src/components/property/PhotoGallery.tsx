@@ -28,11 +28,11 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
   if (!photos || photos.length === 0) {
     return (
       <div
-        className="flex items-center justify-center bg-gray-100 rounded-xl h-96 text-gray-400"
+        className="flex items-center justify-center bg-border rounded-card h-96 text-taupe"
         data-testid="photo-gallery-placeholder"
       >
         <div className="text-center">
-          <Image className="w-16 h-16 mx-auto mb-3 text-gray-300" aria-hidden />
+          <Image className="w-16 h-16 mx-auto mb-3 text-taupe" aria-hidden />
           <p className="text-sm">No photos available</p>
         </div>
       </div>
@@ -59,7 +59,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
       {/* Primary photo */}
       <button
         type="button"
-        className="relative w-full h-96 overflow-hidden rounded-xl bg-gray-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600"
+        className="relative w-full h-96 overflow-hidden rounded-card bg-border focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta"
         onClick={() => openLightbox(activeIndex)}
         aria-label={`View ${primaryPhoto.caption} in full screen`}
       >
@@ -70,7 +70,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
         />
         <div className="absolute inset-0 bg-black/0 hover:bg-black/10 transition-colors" />
         {photos.length > 1 && (
-          <div className="absolute bottom-3 right-3 bg-black/60 text-white text-xs px-2 py-1 rounded-full">
+          <div className="absolute bottom-3 right-3 bg-ink/70 text-white text-xs px-2 py-1 rounded-full">
             {activeIndex + 1} / {photos.length}
           </div>
         )}
@@ -85,9 +85,9 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
               type="button"
               role="listitem"
               onClick={() => setActiveIndex(index)}
-              className={`flex-shrink-0 w-20 h-16 overflow-hidden rounded-lg border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 ${
+              className={`flex-shrink-0 w-20 h-16 overflow-hidden rounded-card border-2 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-terracotta ${
                 index === activeIndex
-                  ? 'border-blue-600 opacity-100'
+                  ? 'border-terracotta opacity-100'
                   : 'border-transparent opacity-70 hover:opacity-100'
               }`}
               aria-label={`Photo ${index + 1}: ${photo.caption}`}
@@ -116,7 +116,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
           <button
             type="button"
             onClick={closeLightbox}
-            className="absolute top-4 right-4 text-white hover:text-gray-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+            className="absolute top-4 right-4 text-white hover:text-white/70 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
             aria-label="Close lightbox"
           >
             <X className="w-8 h-8" />
@@ -127,7 +127,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); prevLightbox(); }}
-              className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black/40 rounded-full p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-white hover:text-white/70 bg-black/40 rounded-full p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               aria-label="Previous photo"
             >
               <ChevronLeft className="w-8 h-8" />
@@ -142,7 +142,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
             <img
               src={photos[lightboxIndex].url}
               alt={photos[lightboxIndex].caption}
-              className="max-h-screen max-w-full object-contain rounded-lg"
+              className="max-h-screen max-w-full object-contain rounded-card"
             />
             <p className="mt-2 text-white text-sm">{photos[lightboxIndex].caption}</p>
           </div>
@@ -152,7 +152,7 @@ export function PhotoGallery({ photos }: PhotoGalleryProps) {
             <button
               type="button"
               onClick={(e) => { e.stopPropagation(); nextLightbox(); }}
-              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-gray-300 bg-black/40 rounded-full p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-white hover:text-white/70 bg-black/40 rounded-full p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
               aria-label="Next photo"
             >
               <ChevronRight className="w-8 h-8" />

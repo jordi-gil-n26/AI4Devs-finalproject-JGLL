@@ -112,13 +112,13 @@ function PropertyDetailPageContent() {
         <button
           type="button"
           onClick={() => router.back()}
-          className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-6"
+          className="flex items-center gap-1 text-sm text-taupe hover:text-ink mb-6"
         >
           <ChevronLeft className="w-4 h-4" />
           Back
         </button>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Property not found</h1>
-        <p className="text-gray-500">
+        <h1 className="text-2xl font-serif text-ink mb-2">Property not found</h1>
+        <p className="text-taupe">
           We could not find the property you were looking for.
         </p>
       </div>
@@ -133,7 +133,7 @@ function PropertyDetailPageContent() {
         <div
           data-testid="expired-banner"
           role="alert"
-          className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800"
+          className="mb-4 flex items-center justify-between gap-3 rounded-card border border-border bg-terracotta-tint px-4 py-3 text-sm text-terracotta"
         >
           <span>Your 10-minute hold expired — please reserve again.</span>
           <button
@@ -141,7 +141,7 @@ function PropertyDetailPageContent() {
             onClick={() => setBannerDismissed(true)}
             aria-label="Dismiss"
             data-testid="expired-banner-dismiss"
-            className="font-semibold text-amber-800 hover:text-amber-900"
+            className="font-semibold text-terracotta hover:opacity-70"
           >
             ✕
           </button>
@@ -152,7 +152,7 @@ function PropertyDetailPageContent() {
       <button
         type="button"
         onClick={() => router.back()}
-        className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+        className="flex items-center gap-1 text-sm text-taupe hover:text-ink mb-4 transition-colors"
         aria-label="Go back"
       >
         <ChevronLeft className="w-4 h-4" />
@@ -170,23 +170,23 @@ function PropertyDetailPageContent() {
         <div className="lg:flex-1 min-w-0">
           {/* Title & quick stats */}
           <div className="mb-4">
-            <h1 className="text-2xl font-bold text-gray-900 mb-1">{property.title}</h1>
+            <h1 className="text-2xl font-serif text-ink mb-1">{property.title}</h1>
 
             {/* Rating + review count */}
             {property.avg_rating != null && property.review_count > 0 && (
               <div className="flex items-center gap-1 mb-2">
-                <Star className="w-4 h-4 text-yellow-400 fill-yellow-400" aria-hidden />
-                <span className="text-sm font-semibold text-gray-900">
+                <Star className="w-4 h-4 text-terracotta fill-terracotta" aria-hidden />
+                <span className="text-sm font-semibold text-ink">
                   {property.avg_rating.toFixed(1)}
                 </span>
-                <span className="text-sm text-gray-500">
+                <span className="text-sm text-taupe">
                   ({property.review_count} {property.review_count === 1 ? 'review' : 'reviews'})
                 </span>
               </div>
             )}
 
             {/* Location */}
-            <div className="flex items-center gap-1 text-gray-600 text-sm">
+            <div className="flex items-center gap-1 text-taupe text-sm">
               <MapPin className="w-4 h-4 flex-shrink-0" aria-hidden />
               <span>
                 {property.location.city}, {property.location.country}
@@ -195,23 +195,23 @@ function PropertyDetailPageContent() {
           </div>
 
           {/* Quick capacity chips */}
-          <div className="flex flex-wrap gap-3 mb-5 text-sm text-gray-700">
+          <div className="flex flex-wrap gap-3 mb-5 text-sm text-taupe">
             <div className="flex items-center gap-1">
-              <Users className="w-4 h-4 text-gray-500" aria-hidden />
+              <Users className="w-4 h-4 text-taupe" aria-hidden />
               {property.max_guests} guests
             </div>
             <div className="flex items-center gap-1">
-              <BedDouble className="w-4 h-4 text-gray-500" aria-hidden />
+              <BedDouble className="w-4 h-4 text-taupe" aria-hidden />
               {property.bedrooms} bedroom{property.bedrooms !== 1 ? 's' : ''}
             </div>
             <div className="flex items-center gap-1">
-              <Bath className="w-4 h-4 text-gray-500" aria-hidden />
+              <Bath className="w-4 h-4 text-taupe" aria-hidden />
               {property.bathrooms} bathroom{property.bathrooms !== 1 ? 's' : ''}
             </div>
           </div>
 
           {/* Host info */}
-          <div className="flex items-center gap-3 mb-5 p-4 bg-gray-50 rounded-xl">
+          <div className="flex items-center gap-3 mb-5 p-4 bg-canvas rounded-card border border-border">
             {property.host.avatar_url ? (
               <img
                 src={property.host.avatar_url}
@@ -219,16 +219,16 @@ function PropertyDetailPageContent() {
                 className="w-12 h-12 rounded-full object-cover"
               />
             ) : (
-              <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-bold text-lg">
+              <div className="w-12 h-12 rounded-full bg-terracotta-tint flex items-center justify-center text-terracotta font-bold text-lg">
                 {property.host.first_name.charAt(0).toUpperCase()}
               </div>
             )}
             <div>
-              <p className="text-sm font-semibold text-gray-900">
+              <p className="text-sm font-semibold text-ink">
                 Hosted by {property.host.first_name}
               </p>
               {property.host.is_verified && (
-                <div className="flex items-center gap-1 text-xs text-green-700 mt-0.5">
+                <div className="flex items-center gap-1 text-xs text-terracotta mt-0.5">
                   <CheckCircle className="w-3.5 h-3.5" aria-hidden />
                   Verified host
                 </div>
@@ -238,8 +238,8 @@ function PropertyDetailPageContent() {
 
           {/* Description */}
           <div className="mb-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-2">About this place</h2>
-            <p className="text-gray-700 leading-relaxed whitespace-pre-line">
+            <h2 className="text-lg font-serif text-ink mb-2">About this place</h2>
+            <p className="text-taupe leading-relaxed whitespace-pre-line">
               {property.description}
             </p>
           </div>
@@ -247,7 +247,7 @@ function PropertyDetailPageContent() {
           {/* Amenities */}
           {property.amenities.length > 0 && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">Amenities</h2>
+              <h2 className="text-lg font-serif text-ink mb-3">Amenities</h2>
               <AmenityList amenities={property.amenities} />
             </div>
           )}
@@ -255,11 +255,11 @@ function PropertyDetailPageContent() {
           {/* House rules */}
           {property.house_rules.length > 0 && (
             <div className="mb-6">
-              <h2 className="text-lg font-semibold text-gray-900 mb-3">House rules</h2>
+              <h2 className="text-lg font-serif text-ink mb-3">House rules</h2>
               <ul className="space-y-1">
                 {property.house_rules.map((rule) => (
-                  <li key={rule} className="flex items-center gap-2 text-sm text-gray-700">
-                    <CheckCircle className="w-4 h-4 text-gray-400 flex-shrink-0" aria-hidden />
+                  <li key={rule} className="flex items-center gap-2 text-sm text-taupe">
+                    <CheckCircle className="w-4 h-4 text-taupe flex-shrink-0" aria-hidden />
                     {rule
                       .replace(/_/g, ' ')
                       .replace(/\b\w/g, (c) => c.toUpperCase())}
@@ -271,7 +271,7 @@ function PropertyDetailPageContent() {
 
           {/* Availability calendar (mobile: full width, lg: in left column) */}
           <div className="mb-6 lg:hidden">
-            <h2 className="text-lg font-semibold text-gray-900 mb-3">Availability</h2>
+            <h2 className="text-lg font-serif text-ink mb-3">Availability</h2>
             <AvailabilityCalendar
               unavailableDates={unavailableDates}
               onDateRangeSelect={handleDateRangeSelect}
@@ -282,18 +282,18 @@ function PropertyDetailPageContent() {
 
         {/* ── Right column (lg only): booking widget ───────────────── */}
         <div className="hidden lg:block lg:w-80 xl:w-96 flex-shrink-0">
-          <div className="sticky top-6 space-y-4">
+          <div className="sticky top-[calc(var(--nav-h)+1rem)] space-y-4 rounded-card border border-border bg-surface p-6">
             {/* Nightly rate */}
             <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-bold text-gray-900">
+              <span className="font-serif text-ink text-2xl">
                 €{property.nightly_rate_eur.toFixed(0)}
               </span>
-              <span className="text-sm text-gray-500">/ night</span>
+              <span className="text-sm text-taupe">/ night</span>
             </div>
 
             {/* Availability calendar */}
             <div>
-              <h2 className="text-base font-semibold text-gray-900 mb-3">Select dates</h2>
+              <h2 className="text-base font-serif text-ink mb-3">Select dates</h2>
               <AvailabilityCalendar
                 unavailableDates={unavailableDates}
                 onDateRangeSelect={handleDateRangeSelect}
@@ -303,6 +303,7 @@ function PropertyDetailPageContent() {
 
             {/* Price breakdown */}
             <PriceBreakdown
+              flat
               propertyId={propertyId}
               checkIn={checkIn}
               checkOut={checkOut}
@@ -313,7 +314,7 @@ function PropertyDetailPageContent() {
               type="button"
               onClick={handleReserve}
               disabled={!checkIn || !checkOut}
-              className="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+              className="w-full py-3 px-6 bg-terracotta text-white font-semibold rounded-pill hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               data-testid="reserve-button"
             >
               Reserve
@@ -333,7 +334,7 @@ function PropertyDetailPageContent() {
           type="button"
           onClick={handleReserve}
           disabled={!checkIn || !checkOut}
-          className="w-full py-3 px-6 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="w-full py-3 px-6 bg-terracotta text-white font-semibold rounded-pill hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           data-testid="reserve-button-mobile"
         >
           Reserve
@@ -341,8 +342,8 @@ function PropertyDetailPageContent() {
       </div>
 
       {/* Reviews */}
-      <div className="mt-8 border-t pt-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">
+      <div className="mt-8 border-t border-divider pt-6">
+        <h2 className="text-lg font-serif text-ink mb-4">
           Reviews
         </h2>
         <ReviewList
