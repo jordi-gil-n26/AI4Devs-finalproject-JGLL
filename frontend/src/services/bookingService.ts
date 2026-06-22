@@ -24,33 +24,6 @@ import type {
 } from '@/types/booking';
 
 // --------------------------------------------------------------------------
-// createBooking
-// --------------------------------------------------------------------------
-
-/**
- * Mutation: POST /api/v1/bookings
- *
- * Creates an availability hold and returns the Stripe client secret plus
- * the price breakdown.  The caller is responsible for calling
- * {@link useConfirmBooking} after successful payment.
- */
-export function useCreateBooking(): UseMutationResult<
-  CreateBookingResponse,
-  NormalizedApiError,
-  CreateBookingRequest
-> {
-  return useMutation({
-    mutationFn: async (request: CreateBookingRequest) => {
-      const response = await apiClient.post<CreateBookingResponse>(
-        '/api/v1/bookings',
-        request,
-      );
-      return response.data;
-    },
-  });
-}
-
-// --------------------------------------------------------------------------
 // bookingHold (Strict-Mode-safe)
 // --------------------------------------------------------------------------
 

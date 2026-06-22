@@ -9,7 +9,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const mockPush = vi.fn();
 const mockBack = vi.fn();
 const mockReplace = vi.fn();
-const mockSearchParams = new URLSearchParams({
+let mockSearchParams = new URLSearchParams({
   propertyId: 'prop-uuid-1',
   checkIn: '2026-07-10',
   checkOut: '2026-07-13',
@@ -143,6 +143,14 @@ describe('CheckoutPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
+    // Reset URL params to a complete, valid set (a test may override below).
+    mockSearchParams = new URLSearchParams({
+      propertyId: 'prop-uuid-1',
+      checkIn: '2026-07-10',
+      checkOut: '2026-07-13',
+      guestCount: '2',
+    });
+
     // Set a mock auth token so the checkout auth guard does not redirect.
     localStorage.setItem('auth_token', 'test-jwt-token');
 
@@ -163,6 +171,29 @@ describe('CheckoutPage', () => {
       mutate: mockConfirmBookingMutate,
       isPending: false,
     });
+  });
+
+  it('redirects to /login when no auth token is present', async () => {
+    localStorage.removeItem('auth_token');
+
+    render(<CheckoutPage />);
+
+    await waitFor(() =>
+      expect(mockPush).toHaveBeenCalledWith(
+        expect.stringContaining('/login?redirect='),
+      ),
+    );
+  });
+
+  it('shows the params error when booking params are missing', async () => {
+    mockSearchParams = new URLSearchParams({ guestCount: '1' });
+
+    render(<CheckoutPage />);
+
+    await waitFor(() =>
+      expect(screen.getByTestId('checkout-error')).toBeInTheDocument(),
+    );
+    expect(screen.getByText(/missing booking parameters/i)).toBeInTheDocument();
   });
 
   it('shows loading skeleton when property is loading', () => {

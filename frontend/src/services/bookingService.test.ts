@@ -6,7 +6,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import React from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCreateBooking, useConfirmBooking, useBookingHold } from './bookingService';
+import { useConfirmBooking, useBookingHold } from './bookingService';
 import type { CreateBookingRequest, CreateBookingResponse } from '@/types';
 import type { ConfirmBookingResponse } from '@/types/booking';
 
@@ -48,88 +48,6 @@ function createWrapper() {
     );
   };
 }
-
-// --------------------------------------------------------------------------
-// useCreateBooking
-// --------------------------------------------------------------------------
-
-describe('useCreateBooking', () => {
-  const mockRequest: CreateBookingRequest = {
-    property_id: 'prop-uuid-1',
-    check_in: '2026-07-10',
-    check_out: '2026-07-13',
-    guest_count: 2,
-  };
-
-  const mockResponse: CreateBookingResponse = {
-    booking_id: 'booking-uuid-1',
-    reference_number: 'BK-12345678',
-    price_breakdown: {
-      nights: 3,
-      nightly_rate_eur: 120,
-      subtotal_eur: 360,
-      cleaning_fee_eur: 45,
-      service_fee_eur: 48.6,
-      tax_eur: 0,
-      total_eur: 453.6,
-    },
-    stripe_client_secret: 'pi_stub_secret_test',
-    hold_expires_at: '2026-07-10T12:10:00Z',
-  };
-
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it('calls POST /api/v1/bookings with correct payload', async () => {
-    (apiClient.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: mockResponse });
-
-    const { result } = renderHook(() => useCreateBooking(), { wrapper: createWrapper() });
-
-    act(() => {
-      result.current.mutate(mockRequest);
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(apiClient.post).toHaveBeenCalledWith('/api/v1/bookings', mockRequest);
-  });
-
-  it('returns booking data on success', async () => {
-    (apiClient.post as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ data: mockResponse });
-
-    const { result } = renderHook(() => useCreateBooking(), { wrapper: createWrapper() });
-
-    act(() => {
-      result.current.mutate(mockRequest);
-    });
-
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-
-    expect(result.current.data).toEqual(mockResponse);
-  });
-
-  it('surfaces error on API failure', async () => {
-    const error = new Error('Network error');
-    (apiClient.post as ReturnType<typeof vi.fn>).mockRejectedValueOnce(error);
-
-    const { result } = renderHook(() => useCreateBooking(), { wrapper: createWrapper() });
-
-    act(() => {
-      result.current.mutate(mockRequest);
-    });
-
-    await waitFor(() => expect(result.current.isError).toBe(true));
-
-    expect(result.current.error).toBeDefined();
-  });
-
-  it('starts in idle state', () => {
-    const { result } = renderHook(() => useCreateBooking(), { wrapper: createWrapper() });
-    expect(result.current.isPending).toBe(false);
-    expect(result.current.isIdle).toBe(true);
-  });
-});
 
 // --------------------------------------------------------------------------
 // useBookingHold
