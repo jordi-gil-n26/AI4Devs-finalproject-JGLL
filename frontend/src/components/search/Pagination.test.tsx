@@ -31,4 +31,26 @@ describe('Pagination', () => {
     const { container } = render(<Pagination page={1} totalPages={1} onPageChange={() => {}} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('windows large page counts: shows first, last, current neighbours, and ellipsis', () => {
+    render(<Pagination page={5} totalPages={10} onPageChange={() => {}} />);
+    // first, last, current and neighbours present
+    expect(screen.getByRole('button', { name: 'Page 1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 4' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 5' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 6' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Page 10' })).toBeInTheDocument();
+    // far-away page not rendered as a button
+    expect(screen.queryByRole('button', { name: 'Page 8' })).not.toBeInTheDocument();
+    // ellipsis gap rendered
+    expect(screen.getAllByText('…').length).toBeGreaterThan(0);
+  });
+
+  it('shows every page without ellipsis when the count is small', () => {
+    render(<Pagination page={1} totalPages={5} onPageChange={() => {}} />);
+    for (let p = 1; p <= 5; p++) {
+      expect(screen.getByRole('button', { name: `Page ${p}` })).toBeInTheDocument();
+    }
+    expect(screen.queryAllByText('…')).toHaveLength(0);
+  });
 });
