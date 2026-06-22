@@ -276,6 +276,7 @@ function CheckoutPageContent() {
               </div>
               <Link
                 href={editTripHref}
+                aria-label="Edit dates"
                 className="text-sm text-terracotta underline hover:opacity-70"
               >
                 Edit
@@ -293,6 +294,7 @@ function CheckoutPageContent() {
               </div>
               <Link
                 href={editTripHref}
+                aria-label="Edit guests"
                 className="text-sm text-terracotta underline hover:opacity-70"
               >
                 Edit
