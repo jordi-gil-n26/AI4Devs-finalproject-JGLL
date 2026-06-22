@@ -124,4 +124,11 @@ describe('PhotoGallery Component', () => {
       expect(screen.getByText('Living room')).toBeInTheDocument();
     });
   });
+
+  describe('Editorial token styling', () => {
+    it('marks the active thumbnail with the terracotta border', () => {
+      render(<PhotoGallery photos={[{ url: 'a', caption: 'A' }, { url: 'b', caption: 'B' }]} />);
+      expect(screen.getAllByRole('listitem')[0].className).toContain('border-terracotta');
+    });
+  });
 });
