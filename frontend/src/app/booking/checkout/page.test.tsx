@@ -76,21 +76,6 @@ vi.mock('@/components/booking/PaymentForm', () => ({
 }));
 
 // --------------------------------------------------------------------------
-// Mock Stripe
-// --------------------------------------------------------------------------
-
-vi.mock('@stripe/react-stripe-js', () => ({
-  Elements: ({ children }: { children: React.ReactNode }) => React.createElement('div', null, children),
-  CardElement: () => React.createElement('div', null),
-  useStripe: () => null,
-  useElements: () => null,
-}));
-
-vi.mock('@stripe/stripe-js', () => ({
-  loadStripe: vi.fn().mockResolvedValue(null),
-}));
-
-// --------------------------------------------------------------------------
 // Import page (after mocks)
 // --------------------------------------------------------------------------
 
