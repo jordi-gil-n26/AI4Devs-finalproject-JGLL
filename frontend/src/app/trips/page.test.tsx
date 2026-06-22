@@ -44,6 +44,17 @@ describe('TripsPage', () => {
     expect(screen.getByText('Cosy Eixample Apartment')).toBeInTheDocument();
   });
 
+  it('applies editorial tokens to the heading and active tab', () => {
+    useMyTrips.mockReturnValue({
+      data: { bookings: [trip], pagination: { page: 1, size: 10, total_results: 1, total_pages: 1 } },
+      isLoading: false,
+      error: null,
+    });
+    render(<TripsPage />);
+    expect(screen.getByRole('heading', { name: 'My Trips' }).className).toContain('font-serif');
+    expect(screen.getByTestId('trips-filter-upcoming').className).toContain('border-terracotta');
+  });
+
   it('shows an empty state when there are no trips', () => {
     useMyTrips.mockReturnValue({
       data: { bookings: [], pagination: { page: 1, size: 10, total_results: 0, total_pages: 0 } },
