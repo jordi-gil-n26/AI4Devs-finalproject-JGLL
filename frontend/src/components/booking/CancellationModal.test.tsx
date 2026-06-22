@@ -47,6 +47,11 @@ describe('CancellationModal', () => {
     expect(screen.getByTestId('confirm-cancel-button')).toBeDisabled();
   });
 
+  it('styles the confirm button with the editorial terracotta token', () => {
+    render(<CancellationModal {...baseProps} />);
+    expect(screen.getByTestId('confirm-cancel-button').className).toContain('bg-terracotta');
+  });
+
   it('renders an error message when provided', () => {
     render(<CancellationModal {...baseProps} error="Something went wrong" />);
     expect(screen.getByText('Something went wrong')).toBeInTheDocument();

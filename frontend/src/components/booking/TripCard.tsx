@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { MapPin } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import type { BookingSummary, BookingStatus } from '@/types';
 
 interface TripCardProps {
@@ -10,9 +10,9 @@ interface TripCardProps {
 }
 
 const STATUS_STYLES: Record<BookingStatus, string> = {
-  confirmed: 'bg-green-100 text-green-800',
-  cancelled: 'bg-red-100 text-red-700',
-  completed: 'bg-gray-100 text-gray-700',
+  confirmed: 'bg-terracotta-tint text-terracotta',
+  cancelled: 'border border-border bg-surface text-taupe',
+  completed: 'bg-canvas text-taupe',
 };
 
 function formatDate(iso: string): string {
@@ -32,9 +32,9 @@ export function TripCard({ trip, onClick }: TripCardProps) {
       aria-label={`View booking ${trip.reference_number}`}
       data-testid="trip-card"
       data-booking-id={trip.id}
-      className="group flex w-full gap-4 overflow-hidden rounded-lg bg-white p-3 text-left shadow-sm transition-shadow hover:shadow-md"
+      className="group flex w-full gap-4 overflow-hidden rounded-card border border-border bg-surface p-3 text-left transition-colors hover:border-terracotta"
     >
-      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-md bg-gray-200">
+      <div className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-card bg-border">
         <img
           src={trip.property_photo_url}
           alt={`Photo of ${trip.property_title}`}
@@ -47,23 +47,28 @@ export function TripCard({ trip, onClick }: TripCardProps) {
 
       <div className="flex flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="line-clamp-1 text-sm font-semibold text-gray-900">{trip.property_title}</h3>
+          <p className="uppercase tracking-wide text-xs text-taupe">{trip.city}</p>
           <span
             data-testid="trip-status"
-            className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_STYLES[trip.status]}`}
+            className={`rounded-pill px-2 py-0.5 text-xs font-medium uppercase tracking-wide ${STATUS_STYLES[trip.status]}`}
           >
             {trip.status}
           </span>
         </div>
-        <p className="flex items-center gap-1 text-xs text-gray-600">
-          <MapPin className="h-3 w-3" aria-hidden />
-          {trip.city}
-        </p>
-        <p className="text-xs text-gray-600">
+        <h3 className="line-clamp-1 font-serif text-ink text-base">{trip.property_title}</h3>
+        <p className="text-xs text-taupe">
           {formatDate(trip.check_in)} → {formatDate(trip.check_out)}
         </p>
-        <p className="text-xs text-gray-500">{trip.reference_number}</p>
-        <p className="mt-auto text-sm font-bold text-gray-900">€{trip.total_eur.toFixed(2)}</p>
+        <p className="text-xs text-taupe">{trip.reference_number}</p>
+        <div className="mt-auto flex items-end justify-between">
+          <div>
+            <p className="uppercase tracking-wide text-xs text-taupe">Total</p>
+            <p className="font-serif text-ink text-base">€{trip.total_eur.toFixed(2)}</p>
+          </div>
+          <span className="text-terracotta text-sm font-medium inline-flex items-center gap-1">
+            View details <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </span>
+        </div>
       </div>
     </button>
   );
