@@ -133,7 +133,7 @@ function PropertyDetailPageContent() {
         <div
           data-testid="expired-banner"
           role="alert"
-          className="mb-4 flex items-center justify-between gap-3 rounded-lg border border-border bg-terracotta-tint px-4 py-3 text-sm text-terracotta"
+          className="mb-4 flex items-center justify-between gap-3 rounded-card border border-border bg-terracotta-tint px-4 py-3 text-sm text-terracotta"
         >
           <span>Your 10-minute hold expired — please reserve again.</span>
           <button
