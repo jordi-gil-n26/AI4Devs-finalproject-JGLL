@@ -5,9 +5,11 @@ import com.stayhub.domain.property.GeocodeService
 import com.stayhub.domain.property.PropertySearchFilters
 import com.stayhub.presentation.dto.search.*
 import com.stayhub.application.error.ValidationException
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
 
+@Tag(name = "Search", description = "Geospatial property search and geocoding")
 @RestController
 @RequestMapping("/api/v1/properties")
 class SearchController(
