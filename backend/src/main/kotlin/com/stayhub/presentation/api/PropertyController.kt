@@ -11,12 +11,14 @@ import com.stayhub.presentation.dto.property.PriceBreakdownResponse
 import com.stayhub.presentation.dto.property.PropertyDetailsResponse
 import com.stayhub.presentation.dto.property.ReviewsResponse
 import com.stayhub.application.error.ValidationException
+import io.swagger.v3.oas.annotations.tags.Tag
 import org.slf4j.LoggerFactory
 import org.springframework.web.bind.annotation.*
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
 import java.util.UUID
 
+@Tag(name = "Properties", description = "Property details, availability, reviews and pricing")
 @RestController
 @RequestMapping("/api/v1/properties")
 class PropertyController(

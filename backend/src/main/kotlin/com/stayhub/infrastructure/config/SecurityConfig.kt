@@ -55,6 +55,16 @@ class SecurityConfig {
                     // CORS preflight: never carries credentials, must always pass
                     // so the browser can then send the real request.
                     .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                    // OpenAPI / Swagger UI — public so the docs are browsable
+                    // without a token (issue #84). Booking operations still
+                    // require auth; Swagger's "Authorize" button supplies the JWT.
+                    .pathMatchers(
+                        "/v3/api-docs",
+                        "/v3/api-docs/**",
+                        "/swagger-ui.html",
+                        "/swagger-ui/**",
+                        "/webjars/**",
+                    ).permitAll()
                     // Public, unauthenticated endpoints
                     .pathMatchers("/api/v1/auth/**").permitAll()
                     .pathMatchers(HttpMethod.GET, "/api/v1/properties/search").permitAll()

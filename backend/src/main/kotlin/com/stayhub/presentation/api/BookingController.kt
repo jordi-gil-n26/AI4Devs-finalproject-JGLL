@@ -23,6 +23,8 @@ import com.stayhub.presentation.dto.booking.ConfirmBookingRequest
 import com.stayhub.presentation.dto.booking.CreateBookingRequest
 import com.stayhub.presentation.dto.booking.CreateBookingResponse
 import com.stayhub.presentation.dto.booking.MyTripsResponse
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import kotlinx.coroutines.reactor.awaitSingleOrNull
 import org.slf4j.LoggerFactory
@@ -50,6 +52,8 @@ import java.util.UUID
  *  GET  /api/v1/bookings/{id}             — booking detail (US4)
  *  POST /api/v1/bookings/{id}/cancel      — cancel a confirmed booking (US4)
  */
+@Tag(name = "Bookings", description = "Create, confirm, list and cancel bookings (requires a Bearer JWT)")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1/bookings")
 class BookingController(
