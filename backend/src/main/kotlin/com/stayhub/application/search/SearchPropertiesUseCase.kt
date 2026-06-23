@@ -48,6 +48,8 @@ class SearchPropertiesUseCase(
         }
 
         val pageable = PageRequest.of(page - 1, size)
-        return propertyRepository.searchByBoundingBox(swLat, swLng, neLat, neLng, filters, pageable)
+        return propertyRepository.searchByBoundingBox(
+            swLat, swLng, neLat, neLng, checkInDate, checkOutDate, filters, pageable,
+        )
     }
 }

@@ -14,6 +14,7 @@ import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.util.*
 
 @Repository
@@ -26,6 +27,8 @@ class PropertyRepositoryAdapter(
         swLng: Double,
         neLat: Double,
         neLng: Double,
+        checkIn: LocalDate,
+        checkOut: LocalDate,
         filters: PropertySearchFilters,
         pageable: Pageable,
     ): Page<Property> {
@@ -46,6 +49,12 @@ class PropertyRepositoryAdapter(
                 p.location::geometry
             )
             AND p.is_active = true
+            AND NOT EXISTS (SELECT 1 FROM availability av WHERE av.property_id = p.id
+                            AND av.status IN ('booked','blocked') AND av.date >= :checkIn AND av.date < :checkOut)
+            AND NOT EXISTS (SELECT 1 FROM booking b WHERE b.property_id = p.id
+                            AND b.status <> 'cancelled' AND b.check_in < :checkOut AND b.check_out > :checkIn)
+            AND NOT EXISTS (SELECT 1 FROM availability_hold h WHERE h.property_id = p.id
+                            AND h.held_until > now() AND h.check_in < :checkOut AND h.check_out > :checkIn)
         """.trimIndent() + buildString {
             // Add price filters with parameterized queries
             if (filters.minPrice != null) {
@@ -81,6 +90,8 @@ class PropertyRepositoryAdapter(
             .bind("swLat", swLat)
             .bind("neLng", neLng)
             .bind("neLat", neLat)
+            .bind("checkIn", checkIn)
+            .bind("checkOut", checkOut)
             .bind("pageSize", pageable.pageSize)
             .bind("offset", pageable.offset)
 
