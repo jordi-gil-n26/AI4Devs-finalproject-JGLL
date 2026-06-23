@@ -23,6 +23,23 @@ How to regenerate
 It overwrites V11__more_seed_data.sql in place. Commit BOTH this script and the
 generated SQL.
 
+NOTE: V11__more_seed_data.sql is ALREADY MERGED + APPLIED and is frozen by a
+Flyway checksum. Do NOT regenerate/overwrite it. The default entrypoint above is
+kept only so the V11 code path stays callable and byte-for-byte identical; in
+practice you only run the V12 entrypoint below.
+
+How to regenerate V12 (the photo fix)
+-------------------------------------
+    python3 backend/src/main/resources/db/migration/scripts/generate_v11_seed.py --v12
+
+This writes ``V12__fix_seed_photos.sql`` next to the migrations. V12 issues one
+``UPDATE property SET photos = ...`` per property for all 120 properties (the 15
+existing ``cccccccc-...`` + the 105 new ``dddddddd-...``), replacing the loose
+LoremFlickr keyword URLs with a curated, HTTP-200-verified pool of real Unsplash
+interior/property photos (see ``UNSPLASH_POOL`` / ``build_unsplash_photos``).
+It is deterministic (index-derived, no ``random``) so re-running produces an
+identical file.
+
 How to swap the photo source
 ----------------------------
 All photo URLs are produced by the single ``photo_url(keywords, lock)``
@@ -415,6 +432,186 @@ def generate_update_statement(seq: int, uid: str, ptype: str) -> str:
     )
 
 
+# ===========================================================================
+# V12 -- curated real Unsplash interior photos (replaces LoremFlickr).
+# ===========================================================================
+#
+# V11 photos used loose LoremFlickr keyword URLs; LoremFlickr's keyword matching
+# is fuzzy so many results were not interiors/flats. V12 replaces every
+# property's photos JSONB with images drawn from this curated, HTTP-200-verified
+# pool of real Unsplash photos.
+#
+# URL template (all verified to return 200 with these query params):
+#   https://images.unsplash.com/photo-{id}?w=800&q=80&auto=format&fit=crop
+UNSPLASH_URL_TEMPLATE = (
+    "https://images.unsplash.com/photo-{id}?w=800&q=80&auto=format&fit=crop"
+)
+
+UNSPLASH_POOL = {
+    "LIVING": [
+        "1631679706909-1844bbd07221", "1618220179428-22790b461013",
+        "1616047006789-b7af5afb8c20", "1598928506311-c55ded91a20c",
+        "1605774337664-7a846e9cdf17", "1632829882891-5047ccc421bc",
+        "1554995207-c18c203602cb", "1618221195710-dd6b41faaea6",
+        "1583847268964-b28dc8f51f92", "1560448204-e02f11c3d0e2",
+    ],
+    "BEDROOM": [
+        "1502672260266-1c1ef2d93688", "1522708323590-d24dbb6b0267",
+        "1586023492125-27b2c045efd7", "1493809842364-78817add7ffb",
+        "1512918728675-ed5a9ecdebfd", "1585128792020-803d29415281",
+    ],
+    "KITCHEN": [
+        "1600489000022-c2086d79f9d4", "1556911220-bff31c812dba",
+        "1617228069096-4638a7ffc906", "1622372738946-62e02505feb3",
+        "1565538810643-b5bdb714032a", "1507089947368-19c1da9775ae",
+        "1632583824020-937ae9564495", "1556912167-f556f1f39fdf",
+        "1588854337221-4cf9fa96059c", "1600684388091-627109f3cd60",
+        "1484154218962-a197022b5858",
+    ],
+    "INTERIOR": [
+        "1564078516393-cf04bd966897", "1613575831056-0acd5da8f085",
+        "1675279200694-8529c73b1fd0", "1628592102751-ba83b0314276",
+        "1665249934445-1de680641f50", "1556020685-ae41abfc9365",
+    ],
+    "EXTERIOR": [
+        "1580587771525-78b9dba3b914", "1613490493576-7fde63acd811",
+        "1531971589569-0d9370cbe1e5", "1512917774080-9991f1c4c750",
+        "1505843513577-22bb7d21e455", "1706808849780-7a04fbac83ef",
+        "1582268611958-ebfd161ef9cf", "1600596542815-ffad4c1539a9",
+        "1544984243-ec57ea16fe25",
+    ],
+}
+
+# (bucket, caption, per-bucket index offset). Slots are taken in order; the
+# count of slots used per property is decided by property_type below.
+PHOTO_SLOTS = [
+    ("LIVING", "Living room", 0),
+    ("BEDROOM", "Bedroom", 0),
+    ("KITCHEN", "Kitchen", 0),
+    ("INTERIOR", "Interior", 1),  # +1 offset so neighbours don't align
+    ("EXTERIOR", "Terrace", 0),
+]
+
+
+def _unsplash_url(bucket: str, global_index: int, offset: int) -> str:
+    pool = UNSPLASH_POOL[bucket]
+    photo_id = pool[(global_index + offset) % len(pool)]
+    return UNSPLASH_URL_TEMPLATE.format(id=photo_id)
+
+
+def photo_count_for_type(property_type: str) -> int:
+    """3-5 photos by type so galleries differ.
+
+    studio=3, apartment(+loft/flat)=4, house/villa/cabin=5.
+    """
+    if property_type == "studio":
+        return 3
+    if property_type in ("house", "villa", "cabin"):
+        return 5
+    return 4  # apartment / loft / flat
+
+
+def build_unsplash_photos(global_index: int, property_type: str):
+    """Return a list of {url,caption,order} dicts from the curated pool.
+
+    Deterministic in ``global_index`` (no RNG). The first ``count`` PHOTO_SLOTS
+    are used; ``count`` is 3-5 per ``photo_count_for_type``. Captions always
+    match their bucket. Length is always >= 1 (it's 3-5).
+    """
+    count = photo_count_for_type(property_type)
+    photos = []
+    for i in range(count):
+        bucket, caption, offset = PHOTO_SLOTS[i]
+        photos.append({
+            "url": _unsplash_url(bucket, global_index, offset),
+            "caption": caption,
+            "order": i + 1,
+        })
+    return photos
+
+
+def _photos_json(photos) -> str:
+    """Render the photos list as a compact JSON array literal for SQL."""
+    objs = []
+    for p in photos:
+        objs.append(
+            '{"url":"' + p["url"] + '","caption":"' + sql_escape(p["caption"])
+            + '","order":' + str(p["order"]) + "}"
+        )
+    return "[" + ",".join(objs) + "]"
+
+
+def _all_property_ids():
+    """All 120 property ids in a stable order, each paired with its type.
+
+    Order: the 15 existing ``cccccccc-...`` first, then the 105 new
+    ``dddddddd-...`` derived exactly as V11 derives them (city iteration in
+    CITIES order, n = 1..count). Returns ``[(uid, property_type), ...]``.
+    """
+    result = []
+    # 15 existing properties first.
+    for uid, ptype in EXISTING_PROPERTIES:
+        result.append((uid, ptype))
+    # 105 new properties -- same derivation as generate_property_row().
+    for city in CITIES:
+        code = city["code"]
+        for n in range(1, city["count"] + 1):
+            nnn = f"{n:04d}"
+            uid = f"dddddddd-dddd-dddd-dddd-0000000{code}{nnn}"
+            ptype, _noun = TYPE_ROTATION[(n - 1) % len(TYPE_ROTATION)]
+            result.append((uid, ptype))
+    return result
+
+
+def build_v12_sql() -> str:
+    out = []
+    out.append("-- V12__fix_seed_photos.sql")
+    out.append("--")
+    out.append("-- GENERATED FILE -- do not edit by hand.")
+    out.append("-- Regenerate with:")
+    out.append("--   python3 backend/src/main/resources/db/migration/scripts/"
+               "generate_v11_seed.py --v12")
+    out.append("--")
+    out.append("-- Replaces the loose LoremFlickr keyword photos seeded by V11 "
+               "(many of which")
+    out.append("-- were not interiors/flats) with a curated, HTTP-200-verified "
+               "pool of real")
+    out.append("-- Unsplash interior/property photos. One UPDATE per property "
+               "for all 120")
+    out.append("-- properties: the 15 existing cccccccc-... + the 105 new "
+               "dddddddd-... ones.")
+    out.append("--")
+    out.append("-- Deterministic: each property's photo set is derived purely "
+               "from its stable")
+    out.append("-- global index + property_type (see build_unsplash_photos in "
+               "the generator),")
+    out.append("-- so re-running produces a byte-for-byte identical file. "
+               "Photos: 3-5 per")
+    out.append("-- property (studio=3, apartment=4, house/villa/cabin=5); "
+               "captions match the")
+    out.append("-- room bucket. URL template: "
+               "https://images.unsplash.com/photo-{id}?w=800&q=80&auto=format&"
+               "fit=crop")
+    out.append("")
+    for global_index, (uid, ptype) in enumerate(_all_property_ids()):
+        photos = build_unsplash_photos(global_index, ptype)
+        photos_json = _photos_json(photos)
+        out.append(
+            f"UPDATE property SET photos = '{photos_json}'::jsonb "
+            f"WHERE id = '{uid}'::uuid;"
+        )
+    out.append("")
+    return "\n".join(out)
+
+
+def generate_v12() -> None:
+    migration_dir = Path(__file__).resolve().parent.parent
+    target = migration_dir / "V12__fix_seed_photos.sql"
+    sql = build_v12_sql()
+    target.write_text(sql, encoding="utf-8")
+    print(f"Wrote {target}")
+
+
 # ---------------------------------------------------------------------------
 # Assemble the migration file
 # ---------------------------------------------------------------------------
@@ -508,4 +705,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import sys
+
+    if "--v12" in sys.argv[1:]:
+        generate_v12()
+    else:
+        main()
