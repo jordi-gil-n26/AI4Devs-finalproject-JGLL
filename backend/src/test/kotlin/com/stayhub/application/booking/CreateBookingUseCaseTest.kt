@@ -4,6 +4,7 @@ import com.stayhub.application.error.DatesUnavailableException
 import com.stayhub.application.error.NotFoundException
 import com.stayhub.domain.availability.AvailabilityHold
 import com.stayhub.domain.availability.AvailabilityHoldRepository
+import com.stayhub.domain.availability.AvailabilityRepository
 import com.stayhub.domain.booking.Booking
 import com.stayhub.domain.booking.BookingRepository
 import com.stayhub.domain.booking.BookingStatus
@@ -33,12 +34,14 @@ class CreateBookingUseCaseTest {
     private val propertyRepository = mockk<PropertyRepository>()
     private val bookingRepository = mockk<BookingRepository>()
     private val holdRepository = mockk<AvailabilityHoldRepository>()
+    private val availabilityRepository = mockk<AvailabilityRepository>()
     private val paymentService = mockk<PaymentService>()
 
     private val useCase = CreateBookingUseCase(
         propertyRepository = propertyRepository,
         bookingRepository = bookingRepository,
         holdRepository = holdRepository,
+        availabilityRepository = availabilityRepository,
         paymentService = paymentService,
     )
 
@@ -71,6 +74,9 @@ class CreateBookingUseCaseTest {
         coEvery { holdRepository.findActiveHoldForDates(propertyId, checkIn, checkOut) } returns null
         coEvery {
             bookingRepository.findByPropertyAndDates(propertyId, checkIn, checkOut)
+        } returns emptyList()
+        coEvery {
+            availabilityRepository.findUnavailableDates(propertyId, checkIn, checkOut.minusDays(1))
         } returns emptyList()
     }
 
@@ -273,6 +279,9 @@ class CreateBookingUseCaseTest {
                     updatedAt = Instant.now(),
                 )
             )
+            coEvery {
+                availabilityRepository.findUnavailableDates(propertyId, checkIn, checkOut.minusDays(1))
+            } returns emptyList()
             stubHoldCreation()
             stubPaymentIntent()
             stubBookingSave()

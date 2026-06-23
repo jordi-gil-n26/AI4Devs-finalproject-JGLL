@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import java.time.LocalDate
 import java.util.*
 
 class SearchPropertiesUseCaseTest {
@@ -48,6 +49,8 @@ class SearchPropertiesUseCaseTest {
                     swLng = 2.10,
                     neLat = 41.45,
                     neLng = 2.20,
+                    checkIn = LocalDate.parse("2026-07-01"),
+                    checkOut = LocalDate.parse("2026-07-05"),
                     filters = PropertySearchFilters(),
                     pageable = PageRequest.of(0, 20)
                 )

@@ -2,6 +2,7 @@ package com.stayhub.domain.property
 
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import java.time.LocalDate
 import java.util.*
 
 interface PropertyRepository {
@@ -10,6 +11,8 @@ interface PropertyRepository {
         swLng: Double,
         neLat: Double,
         neLng: Double,
+        checkIn: LocalDate,
+        checkOut: LocalDate,
         filters: PropertySearchFilters,
         pageable: Pageable,
     ): Page<Property>

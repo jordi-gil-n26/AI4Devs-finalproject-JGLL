@@ -4,6 +4,7 @@ import com.stayhub.application.error.DatesUnavailableException
 import com.stayhub.application.error.NotFoundException
 import com.stayhub.application.error.ValidationException
 import com.stayhub.domain.availability.AvailabilityHoldRepository
+import com.stayhub.domain.availability.AvailabilityRepository
 import com.stayhub.domain.booking.Booking
 import com.stayhub.domain.booking.BookingRepository
 import com.stayhub.domain.booking.BookingStatus
@@ -37,6 +38,7 @@ class CreateBookingUseCase(
     private val propertyRepository: PropertyRepository,
     private val bookingRepository: BookingRepository,
     private val holdRepository: AvailabilityHoldRepository,
+    private val availabilityRepository: AvailabilityRepository,
     private val paymentService: PaymentService,
 ) {
     suspend fun execute(command: CreateBookingCommand): CreateBookingResult {
@@ -77,6 +79,18 @@ class CreateBookingUseCase(
             command.checkOut,
         )
         if (overlapping.any { it.status != BookingStatus.CANCELLED }) {
+            throw DatesUnavailableException("Property is already booked for the requested dates")
+        }
+
+        // The availability table is the same source the detail calendar and the
+        // search filter consult. The occupied nights are [checkIn, checkOut-1];
+        // findUnavailableDates uses an inclusive [from, to] range.
+        val unavailableNights = availabilityRepository.findUnavailableDates(
+            command.propertyId,
+            command.checkIn,
+            command.checkOut.minusDays(1),
+        )
+        if (unavailableNights.isNotEmpty()) {
             throw DatesUnavailableException("Property is already booked for the requested dates")
         }
 
