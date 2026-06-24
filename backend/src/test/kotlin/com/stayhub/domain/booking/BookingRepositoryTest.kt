@@ -1,14 +1,13 @@
 package com.stayhub.domain.booking
 
+import com.stayhub.domain.common.DomainPageRequest
+import com.stayhub.domain.common.PagedResult
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.shouldNotBe
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Pageable
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -35,17 +34,17 @@ class BookingRepositoryTest {
 
         override suspend fun findById(id: UUID): Booking? = store[id]
 
-        override suspend fun findByGuestId(guestId: UUID, pageable: Pageable): org.springframework.data.domain.Page<Booking> {
+        override suspend fun findByGuestId(guestId: UUID, pageable: DomainPageRequest): PagedResult<Booking> {
             val filtered = store.values.filter { it.guestId == guestId }
-            return PageImpl(filtered, pageable, filtered.size.toLong())
+            return PagedResult(filtered, pageable.page, pageable.size, filtered.size.toLong())
         }
 
         override suspend fun findByGuestIdAndCategory(
             guestId: UUID,
             category: TripCategory,
             today: LocalDate,
-            pageable: Pageable,
-        ): org.springframework.data.domain.Page<Booking> {
+            pageable: DomainPageRequest,
+        ): PagedResult<Booking> {
             val filtered = store.values.filter { b ->
                 b.guestId == guestId && when (category) {
                     TripCategory.ALL -> true
@@ -54,7 +53,7 @@ class BookingRepositoryTest {
                     TripCategory.CANCELLED -> b.status == BookingStatus.CANCELLED
                 }
             }
-            return PageImpl(filtered, pageable, filtered.size.toLong())
+            return PagedResult(filtered, pageable.page, pageable.size, filtered.size.toLong())
         }
 
         override suspend fun findByPropertyAndDates(
@@ -140,7 +139,7 @@ class BookingRepositoryTest {
             checkIn = LocalDate.of(2026, 9, 1), checkOut = LocalDate.of(2026, 9, 3)))
         repo.save(booking(guestId = otherGuestId, propertyId = propertyId))
 
-        val page = repo.findByGuestId(targetGuestId, PageRequest.of(0, 10))
+        val page = repo.findByGuestId(targetGuestId, DomainPageRequest(0, 10))
 
         page.content shouldHaveSize 2
         page.content.all { it.guestId == targetGuestId } shouldBe true
@@ -148,7 +147,7 @@ class BookingRepositoryTest {
 
     @Test
     fun `findByGuestId returns empty page when guest has no bookings`() = runTest {
-        val page = repo.findByGuestId(UUID.randomUUID(), PageRequest.of(0, 10))
+        val page = repo.findByGuestId(UUID.randomUUID(), DomainPageRequest(0, 10))
 
         page.content shouldHaveSize 0
         page.totalElements shouldBe 0L

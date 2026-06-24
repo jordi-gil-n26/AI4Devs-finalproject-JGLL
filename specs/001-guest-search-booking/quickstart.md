@@ -3,9 +3,8 @@
 ## Prerequisites
 
 - **Docker** + Docker Compose (for PostgreSQL + PostGIS)
-- **JDK 21+** (for Spring Boot 4 / Kotlin backend)
-- **Node.js 20+** and pnpm (for Next.js frontend)
-- **Stripe CLI** (for webhook testing in development)
+- **JDK 21+** (for the Spring Boot / Kotlin backend)
+- **Node.js 20+** (for the Next.js frontend — uses `npm`, not pnpm)
 
 ## Environment Variables
 
@@ -20,11 +19,6 @@ POSTGRES_PORT=5432
 POSTGRES_DB=stayhub
 POSTGRES_USER=stayhub
 POSTGRES_PASSWORD=stayhub_dev
-
-STRIPE_API_KEY=sk_test_dummy
-STRIPE_WEBHOOK_SECRET=whsec_test_dummy
-
-MAPBOX_API_KEY=pk_test_...
 
 MAIL_HOST=localhost
 MAIL_PORT=1025
@@ -43,9 +37,22 @@ Create `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8080
-NEXT_PUBLIC_MAPBOX_TOKEN=pk.test_...
-NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
+
+# Set NEXT_PUBLIC_E2E=true to use the mock payment path (no real Stripe needed).
+# Payments are demo-only — clicking "Pay" auto-succeeds via the backend stub.
+NEXT_PUBLIC_E2E=true
 ```
+
+**Mapbox token:** the map requires a public Mapbox token (`pk.…`). Add it to
+your shell profile so it is never committed:
+
+```bash
+# Add to ~/.zshenv (sourced by all zsh sessions, including non-interactive)
+export NEXT_PUBLIC_MAPBOX_TOKEN="pk.your_token_here"
+```
+
+Get a free token at <https://account.mapbox.com/access-tokens/> (50k map
+loads/month, no card required). Open a new terminal after adding it.
 
 ## Start Development Environment
 
@@ -54,16 +61,11 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 docker compose up -d
 
 # 2. Run backend (applies Flyway migrations automatically)
-cd backend
-./gradlew bootRun
+backend/gradlew -p backend bootRun
 
 # 3. In another terminal, start frontend
-cd frontend
-pnpm install
-pnpm dev
-
-# 4. (Optional) Start Stripe webhook forwarding
-stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
+npm --prefix frontend install
+npm --prefix frontend run dev
 ```
 
 ## Access Points
@@ -82,17 +84,30 @@ stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 # Backend health check
 curl http://localhost:8080/actuator/health
 
-# Search endpoint (after seed data loads)
-curl "http://localhost:8080/api/v1/properties/search?\
-sw_lat=40.0&sw_lng=-4.0&ne_lat=41.0&ne_lng=-3.0&\
-check_in=2025-06-01&check_out=2025-06-05"
+# Search endpoint — Barcelona bbox, future dates
+curl "http://localhost:8080/api/v1/properties/search?sw_lat=41.30&sw_lng=2.05&ne_lat=41.47&ne_lng=2.25&check_in=2026-08-01&check_out=2026-08-05"
 ```
+
+## End-to-End Booking Flow
+
+1. Open http://localhost:3000 (redirects to `/search`)
+2. Search a city (Barcelona, Madrid, Sevilla, or Lisbon) and pick dates
+3. Click a property card → property detail page
+4. Select dates in the calendar → click **Reserve**
+5. Log in or register when prompted
+6. On checkout, click **Pay** — the mock payment auto-succeeds
+7. Confirmation page shows your booking reference
+8. Visit **My Trips** to see the booking; you can cancel it there
+
+No real payment card is needed. Payments use a backend stub adapter that
+auto-succeeds (no Stripe integration).
 
 ## Sample Data
 
-Flyway migration `V7__seed_sample_data.sql` loads:
+Flyway migrations V7–V12 seed:
 - 3 sample hosts
-- 15 sample properties across Barcelona, Madrid, and Lisbon
+- **120 properties** across Barcelona, Madrid, Sevilla, and Lisbon (30 per city)
+  with curated real interior photos
 - Availability data for the next 90 days
 - 5 sample bookings with reviews
 
@@ -100,16 +115,13 @@ Flyway migration `V7__seed_sample_data.sql` loads:
 
 ```bash
 # Backend unit + integration tests
-cd backend
-./gradlew test
+backend/gradlew -p backend test
 
 # Frontend unit tests
-cd frontend
-pnpm test
+npm --prefix frontend run test
 
 # Frontend E2E tests (requires running dev environment)
-cd frontend
-pnpm test:e2e
+npm --prefix frontend run test:e2e
 ```
 
 ## Docker Compose Services
@@ -125,9 +137,9 @@ services:
 
 - **PostGIS extension not found**: Ensure you use the `postgis/postgis:16-3.4`
   Docker image, not plain `postgres:16`.
-- **Stripe webhooks not received**: Run `stripe listen` and copy the webhook
-  signing secret to `STRIPE_WEBHOOK_SECRET`.
-- **Map not loading**: Verify `NEXT_PUBLIC_MAPBOX_TOKEN` is set. For development,
-  a free Mapbox account provides 50k loads/month.
-- **Port 8080 in use**: Change backend port via `SERVER_PORT` env var or
+- **Map not loading**: Verify `NEXT_PUBLIC_MAPBOX_TOKEN` is exported in your
+  shell profile (`~/.zshenv`) and you opened a new terminal after adding it.
+- **Port 8080 in use**: Change the backend port via `SERVER_PORT` env var or
   `application.yml`.
+- **`JWT_SECRET` too short**: The backend refuses to start if the secret is
+  under 32 characters. Generate one with `openssl rand -base64 48`.

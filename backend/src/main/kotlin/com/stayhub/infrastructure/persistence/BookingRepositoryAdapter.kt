@@ -4,12 +4,11 @@ import com.stayhub.domain.booking.Booking
 import com.stayhub.domain.booking.BookingRepository
 import com.stayhub.domain.booking.BookingStatus
 import com.stayhub.domain.booking.TripCategory
+import com.stayhub.domain.common.DomainPageRequest
+import com.stayhub.domain.common.PagedResult
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.Pageable
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal
@@ -117,7 +116,7 @@ class BookingRepositoryAdapter(
             .awaitFirstOrNull()
     }
 
-    override suspend fun findByGuestId(guestId: UUID, pageable: Pageable): Page<Booking> {
+    override suspend fun findByGuestId(guestId: UUID, pageable: DomainPageRequest): PagedResult<Booking> {
         val sql = """
             SELECT id, property_id, guest_id, reference_number,
                    check_in, check_out, guest_count, nights,
@@ -134,7 +133,7 @@ class BookingRepositoryAdapter(
 
         val results = databaseClient.sql(sql)
             .bind("guestId", guestId)
-            .bind("pageSize", pageable.pageSize)
+            .bind("pageSize", pageable.size)
             .bind("offset", pageable.offset)
             .map { row, _ ->
                 Pair(mapRow(row), row.get("total_count", Long::class.java) ?: 0L)
@@ -145,15 +144,15 @@ class BookingRepositoryAdapter(
 
         val bookings = results.map { it.first }
         val total = results.firstOrNull()?.second ?: 0L
-        return PageImpl(bookings, pageable, total)
+        return PagedResult(bookings, pageable.page, pageable.size, total)
     }
 
     override suspend fun findByGuestIdAndCategory(
         guestId: UUID,
         category: TripCategory,
         today: LocalDate,
-        pageable: Pageable,
-    ): Page<Booking> {
+        pageable: DomainPageRequest,
+    ): PagedResult<Booking> {
         // `filter` fragments are compile-time constants (no user input) — safe to
         // interpolate. `:today` is only referenced for UPCOMING/PAST, so bind it
         // conditionally (R2DBC rejects a bound parameter absent from the SQL).
@@ -180,7 +179,7 @@ class BookingRepositoryAdapter(
 
         var spec = databaseClient.sql(sql)
             .bind("guestId", guestId)
-            .bind("pageSize", pageable.pageSize)
+            .bind("pageSize", pageable.size)
             .bind("offset", pageable.offset)
         if (needsToday) {
             spec = spec.bind("today", today)
@@ -196,7 +195,7 @@ class BookingRepositoryAdapter(
 
         val bookings = results.map { it.first }
         val total = results.firstOrNull()?.second ?: 0L
-        return PageImpl(bookings, pageable, total)
+        return PagedResult(bookings, pageable.page, pageable.size, total)
     }
 
     override suspend fun findByPropertyAndDates(
