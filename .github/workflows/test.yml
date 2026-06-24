@@ -68,7 +68,6 @@ jobs:
   e2e:
     name: E2E (Playwright)
     runs-on: ubuntu-latest
-    continue-on-error: true   # non-blocking until stable; remove to make it a required check
     steps:
       - uses: actions/checkout@v4
 
