@@ -1,7 +1,7 @@
 # StayHub local development infrastructure.
 #
 # Spins up PostgreSQL 16 + PostGIS 3.4 (geospatial property search) and
-# MailHog (fake SMTP server + web UI for booking-confirmation emails).
+# Mailpit (fake SMTP server + web UI for booking-confirmation emails).
 #
 # Default credentials below are for local development only — do NOT use
 # them in any non-local environment. They match the values documented in
@@ -33,19 +33,19 @@ services:
       retries: 5
       start_period: 30s
 
-  mailhog:
-    image: mailhog/mailhog:v1.0.1
-    container_name: stayhub-mailhog
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: stayhub-mailpit
     restart: unless-stopped
     ports:
       - "${MAIL_PORT:-1025}:1025"   # SMTP
       - "${MAIL_UI_PORT:-8025}:8025" # Web UI: http://localhost:8025
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:8025/"]
-      interval: 30s
+      test: ["CMD", "wget", "--quiet", "--spider", "http://localhost:8025/readyz"]
+      interval: 10s
       timeout: 5s
       retries: 3
-      start_period: 10s
+      start_period: 5s
 
 volumes:
   postgres_data:

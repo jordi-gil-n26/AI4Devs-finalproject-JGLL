@@ -50,7 +50,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 ## Start Development Environment
 
 ```bash
-# 1. Start infrastructure (PostgreSQL + PostGIS, MailHog)
+# 1. Start infrastructure (PostgreSQL + PostGIS, Mailpit)
 docker compose up -d
 
 # 2. Run backend (applies Flyway migrations automatically)
@@ -73,7 +73,7 @@ stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:8080 |
 | API Docs (Swagger) | http://localhost:8080/swagger-ui.html |
-| MailHog (email viewer) | http://localhost:8025 |
+| Mailpit (email viewer) | http://localhost:8025 |
 | PostgreSQL | localhost:5432 |
 
 ## Verify Setup
@@ -118,7 +118,7 @@ pnpm test:e2e
 # docker-compose.yml provides:
 services:
   postgres:     # PostgreSQL 16 + PostGIS 3.4
-  mailhog:      # Fake SMTP server for email testing
+  mailpit:      # Fake SMTP server for email testing (replaces MailHog; multi-arch, actively maintained)
 ```
 
 ## Common Issues

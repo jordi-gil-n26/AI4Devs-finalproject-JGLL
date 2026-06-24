@@ -26,7 +26,7 @@ description: "Task list for Guest Search and Booking feature"
 
 - [ ] T001 Initialize Gradle Kotlin DSL project in `backend/` with Spring Boot 4.x, Kotlin 2.0, Spring WebFlux, Spring Security, Spring Data R2DBC, Flyway, Actuator dependencies in `backend/build.gradle.kts`
 - [ ] T002 [P] Initialize Next.js 15 TypeScript project in `frontend/` with App Router, Tailwind CSS, TanStack Query, react-map-gl, Stripe Elements, Axios in `frontend/package.json` and `frontend/next.config.ts`
-- [ ] T003 [P] Create `docker-compose.yml` at repo root with postgis/postgis:16-3.4 and MailHog services
+- [ ] T003 [P] Create `docker-compose.yml` at repo root with postgis/postgis:16-3.4 and Mailpit services (MailHog replaced by Mailpit in #92 — multi-arch, actively maintained)
 - [ ] T004 Create backend package structure: `backend/src/main/kotlin/com/stayhub/domain/`, `application/`, `infrastructure/`, `presentation/` directories per plan.md
 - [ ] T005 [P] Create frontend directory structure: `frontend/src/app/`, `components/`, `hooks/`, `services/`, `types/`, `lib/` per plan.md
 - [ ] T006 Configure `backend/src/main/resources/application.yml` with R2DBC datasource, Flyway, mail, Stripe, Actuator, and CORS settings
