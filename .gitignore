@@ -2,3 +2,6 @@
 # They are local checkouts (and were previously committed as stray gitlinks).
 /.worktrees/
 /.claude/worktrees/
+
+# Local evaluation — not for version control
+/evaluation.md
