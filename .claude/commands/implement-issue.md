@@ -52,6 +52,7 @@ Use the `superpowers:executing-plans` workflow to implement GitHub issue **$ARGU
 6. **Commit.** Use Conventional Commits and include the issue reference, e.g.:
    `feat(booking): add availability check (#$ARGUMENTS)`
    Keep every commit scoped to this issue.
+6a. **Security review.** Run `/security-review` on the branch. If any HIGH-severity finding survives the false-positive filter (confidence ≥ 8), fix it before opening the PR. MEDIUM findings must be acknowledged in the PR body under the **Impact** section. Do not open the PR if there are unresolved HIGH findings.
 7. **Open the PR.** Push the branch and open exactly one PR for this issue with `gh pr create`. The PR description **must** be generated from `.github/pull_request_template.md` (use the file as the literal scaffold). Fill in every relevant section:
    - **What** — implementation summary
    - **Why** — link to issue $ARGUMENTS and the relevant user story / task in `tasks.md`
