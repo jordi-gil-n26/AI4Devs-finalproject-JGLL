@@ -9,6 +9,9 @@
 5. [User Stories](#5-user-stories)
 6. [Work Tickets](#6-work-tickets)
 7. [Pull Requests](#7-pull-requests)
+8. [Implementation Workflow](#8-implementation-workflow)
+9. [Testing & Quality](#9-testing--quality)
+10. [Bug Fixes & Debugging](#10-bug-fixes--debugging)
 
 ---
 
@@ -193,3 +196,51 @@
 **Prompt 3:**
 
 > Document the pull request for adding the implementation plan, data model, API contracts, and task list. The PR title should be: "[Spec Kit] Add implementation plan, data model, and API contracts". The description should explain: What — plan.md, data-model.md with ERD, OpenAPI 3.1 contracts for Search/Property/Booking APIs, quickstart.md, and tasks.md with 85 ordered tasks; Why — completes the design phase, defines the backend/frontend interface contract enabling parallel development; Impact — no production code, but defines ~15 API endpoints, 6 database entities with PostGIS spatial indexing, and Flyway migration strategy; References — all spec artifacts under `specs/001-guest-search-booking/`.
+
+---
+
+## 8. Implementation Workflow
+
+**Prompt 1:**
+
+> I need to implement task T054: CreateBookingUseCase with AvailabilityHold. Read the full context from `specs/001-guest-search-booking/plan.md` (look for T054) and `docs/superpowers/plans/`. Create a feature branch (`issue-22-t054-create-booking-use-case`), implement the use case following Clean Architecture — domain port interface first, application use case second, infrastructure adapter third. Write a failing test before any implementation code (TDD: red → green → refactor). When the tests pass, open a PR with the standard template. Do not commit to main under any circumstances.
+
+**Prompt 2:**
+
+> Dispatch subagents to implement Tasks T040–T043 in parallel using isolated git worktrees. Each subagent works in its own worktree, implements the assigned task with TDD discipline (failing test before implementation), and opens a PR targeting main. Assign: T040 (BookingController + integration tests) to worktree-1, T041 (ConfirmBookingUseCase) to worktree-2, T042 (CancelBookingUseCase) to worktree-3, T043 (GetMyTripsUseCase) to worktree-4. Each subagent must read `CLAUDE.md` before starting — it contains the dependency direction rules, the common import mistake to avoid, and how to respond when ArchUnit fails. Never commit directly to main.
+
+**Prompt 3:**
+
+> Update `CLAUDE.md` to document the Clean Architecture layering rules for this codebase in a way that AI agents understand without needing any prior conversation context. Specifically document: (1) the dependency direction (presentation → application → domain, infrastructure → application → domain — never the reverse); (2) what lives in each layer (domain is pure Kotlin, no Spring annotations; use-case exceptions go in `application/error/` not `presentation/error/`); (3) the most common mistake (importing `ErrorResponse` from `presentation.error` — it must come from `application.error`); (4) what ArchUnit does on every build and how to fix a violation (move the type to a lower layer, never relax the rule). Any AI agent reading CLAUDE.md cold must be able to implement a new use case correctly without further guidance.
+
+---
+
+## 9. Testing & Quality
+
+**Prompt 1:**
+
+> We need a shared integration test base class that boots the full Spring application context against a real PostgreSQL + PostGIS Testcontainer so that tests exercise the real security filter chain, Jackson serializers, and CORS configuration — not mocked versions. Create `AbstractApiIntegrationTest.kt` in `backend/src/test/kotlin/com/stayhub/` that: starts a shared `@Container` (one instance reused across the entire test run), uses `@SpringBootTest(webEnvironment = RANDOM_PORT)`, applies Flyway migrations before any test runs, and provides a pre-configured `WebTestClient` with a pre-issued guest JWT for authenticated endpoints. Any integration test class should be able to extend it with zero boilerplate. Explain in the PR why this harness catches bugs that pure unit tests miss (serialization config, CORS headers, security filter ordering).
+
+**Prompt 2:**
+
+> Add a Playwright E2E test spec at `frontend/tests/e2e/booking-journey.spec.ts` covering two critical guest journeys. Test 1 — full booking: register a new user, search for a property in Barcelona with dates 30–37 days from today, click a result, open the property detail page, click Reserve, submit the mock payment form (use `NEXT_PUBLIC_E2E=true` stub path — no real Stripe), and assert the confirmation page shows a reference number starting with `BK-`. Test 2 — cancellation: run the same booking flow, navigate to My Trips, open the trip detail, click Cancel, confirm in the modal, and assert the status reads `cancelled`. Wire this spec into GitHub Actions via a `docker-compose.e2e.yml` that builds and starts the full stack (backend, frontend, postgres) before running `npx playwright test`. The job must tear down the stack after the run regardless of test outcome.
+
+**Prompt 3:**
+
+> Add `CleanArchitectureTest.kt` in `backend/src/test/kotlin/com/stayhub/architecture/` using ArchUnit to mechanically enforce the layering rules on every build. The test must fail if: (1) any class in `domain/` imports from `application/`, `infrastructure/`, or `presentation/`; (2) any class in `application/` imports from `infrastructure/` or `presentation/`; (3) any class in `infrastructure/` imports from `presentation/`; (4) any domain class carries `@Component`, `@Service`, or `@Repository`; (5) any class annotated `@RestController` lives outside `presentation/`; (6) any class annotated `@Repository` lives outside `infrastructure/`. These rules must run as a standard JUnit 5 test and fail the Gradle build on violation — the goal is that an AI agent cannot accidentally introduce a layering violation without CI catching it on the next PR.
+
+---
+
+## 10. Bug Fixes & Debugging
+
+**Prompt 1:**
+
+> The frontend is receiving a `401` error on `OPTIONS` preflight requests to `POST /api/v1/bookings`, which blocks the browser from sending the actual POST. Diagnose this: the Spring Security filter chain is rejecting the OPTIONS request before the CORS filter can process it. Fix it by ensuring the CORS configuration is applied before the authentication filter — specifically, call `.cors().and()` before `.csrf().disable()` in the security config, and configure a `CorsConfigurationSource` bean that permits `OPTIONS` from the frontend origin (`http://localhost:3000`) with the required headers. After fixing, add an integration test using `AbstractApiIntegrationTest` that sends an `OPTIONS` preflight to `/api/v1/bookings` and asserts the response is `200` with the correct `Access-Control-Allow-*` headers. The bug must not be closed until the integration test is green on CI.
+
+**Prompt 2:**
+
+> The property detail page availability calendar shows all dates as selectable even when those dates have confirmed bookings. Investigate the full write path: when `CreateBookingUseCase` confirms a booking, does it write `availability` rows with `status = 'booked'`? Check the search SQL — is it filtering out properties where any requested date has `status != 'available'` before returning results? Fix both gaps: (1) in `CreateBookingUseCase`, after persisting the booking, insert one `availability` row per booked date with `status = 'booked'`; (2) in the search repository SQL, add a correlated subquery or join that excludes properties where any requested date falls in a booked or blocked range. Add an integration test in `SearchAvailabilityIntegrationTest` that seeds a confirmed booking and asserts the property is excluded from search results when queried for the same dates.
+
+**Prompt 3:**
+
+> The checkout page hangs indefinitely in local development — the booking hold is never created and the page shows an endless loading spinner. Reproduce by navigating to a property detail page and clicking Reserve. Diagnose: the checkout component calls `mutate()` inside a `useEffect` to create the availability hold. Under React 18 Strict Mode (active in development), effects are deliberately mounted, unmounted, and remounted once — so `mutate()` fires twice. The second call gets a `409 DATES_UNAVAILABLE` (the first hold is still active), which sets an unrecoverable error state. Fix: replace the `useEffect + mutate()` pattern with a params-keyed `useQuery` that triggers hold creation as a query keyed on `(propertyId, checkIn, checkOut, guestId)`. React Strict Mode's double-mount does not fire the same query twice because the cache already holds the result from the first invocation. Save this pattern to memory as a known pitfall for future sessions.
