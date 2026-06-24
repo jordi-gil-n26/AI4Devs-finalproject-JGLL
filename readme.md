@@ -54,10 +54,11 @@ StayHub solves the challenge of finding and booking short-term vacation rentals 
 | **Advanced filtering** | Filter by price range, number of guests, property type (apartment, house, villa, cabin, studio), bedrooms, and amenities. |
 | **Property detail page** | Full listing view with photo gallery, description, amenities, house rules, availability calendar, price breakdown, host profile, and guest reviews. |
 | **Instant booking** | Guests reserve directly without host approval. A 10-minute availability hold is placed during checkout to prevent double-booking. |
-| **Stripe payment integration** | Secure card payments via Stripe Payment Intents and Stripe Elements. Full PCI compliance via client-side tokenization. |
+| **Mock payment integration** | Payments use a mock adapter for development and testing. The domain's `PaymentService` port is designed to swap in a real provider (e.g. Stripe) without touching business logic. |
+| **OpenAPI / Swagger UI** | Full API documentation at `/swagger-ui.html` with JWT bearer auth support for interactive endpoint testing. |
 | **Booking management** | Guests can view upcoming and past trips, access booking details (address, host contact), and cancel eligible bookings per the platform cancellation policy. |
 | **Cancellation policy** | Full refund if cancelled 48+ hours before check-in. No refund within 48 hours. |
-| **Email notifications** | Automatic booking confirmation and cancellation emails sent to both guest and host. |
+| **Email notifications** | Email notification stubs are wired — the SMTP adapter is scaffolded but email delivery is not active in the current build (issue #54 open). |
 
 ### **1.3. Design and user experience:**
 
@@ -78,8 +79,7 @@ _Screenshots and demo video to be added after initial implementation._
 
 - Docker + Docker Compose
 - JDK 21+
-- Node.js 20+ and pnpm
-- Stripe CLI (for webhook testing)
+- Node.js 20+
 
 #### 1. Clone the repository
 
@@ -135,7 +135,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 ```bash
 docker compose up -d
-# Starts: PostgreSQL 16 + PostGIS, MailHog (fake SMTP)
+# Starts: PostgreSQL 16 + PostGIS, Mailpit (fake SMTP)
 ```
 
 #### 4. Start the backend
@@ -150,14 +150,8 @@ cd backend
 
 ```bash
 cd frontend
-pnpm install
-pnpm dev
-```
-
-#### 6. (Optional) Forward Stripe webhooks
-
-```bash
-stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
+npm install
+npm run dev
 ```
 
 #### Access points
@@ -167,7 +161,7 @@ stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:8080 |
 | Swagger UI | http://localhost:8080/swagger-ui.html |
-| Email viewer (MailHog) | http://localhost:8025 |
+| Email viewer (Mailpit) | http://localhost:8025 |
 
 ---
 
@@ -353,14 +347,15 @@ graph LR
 
 ### **2.6. Tests**
 
-The testing strategy covers four layers aligned with the constitution's Testing Discipline principle:
+The testing strategy covers five layers aligned with the constitution's Testing Discipline principle. The project contains **51 backend test files**, **44 frontend test files**, and **1 Playwright E2E spec** covering 2 full booking journeys.
 
 | Layer | Tool | Scope |
 |-------|------|-------|
-| **Unit** | JUnit 5 + Kotest + MockK | Domain aggregates (Booking state transitions, pricing formula), use case logic with mocked ports |
-| **Integration** | Testcontainers + Spring WebTestClient | Repository adapters against a real PostgreSQL + PostGIS instance; Stripe adapter with WireMock |
+| **Unit** | JUnit 5 + MockK | Domain aggregates (Booking state transitions, pricing formula), use case logic with mocked ports |
+| **Integration** | Testcontainers + Spring WebTestClient | Full HTTP stack (real PostgreSQL + PostGIS, real Spring Security/Jackson/CORS chain) via `AbstractApiIntegrationTest` base |
 | **Contract** | Spring WebTestClient | API endpoint compliance against OpenAPI contracts in `specs/contracts/` |
-| **E2E** | Playwright | Critical user journeys: search → detail → checkout → confirmation; trip cancellation flow |
+| **E2E** | Playwright | Full booking journey (register → search → book → confirm) and trip cancellation flow; runs against real Docker-compose stack in CI |
+| **Architecture** | ArchUnit | Layering rules enforced on every build — fails CI if any import crosses the dependency boundary |
 
 **Example unit test — pricing formula:**
 ```kotlin
@@ -713,152 +708,112 @@ GET /api/v1/properties/{propertyId}
 
 ## 6. Work Tickets
 
-### Ticket 1 — Backend: Implement CreateBookingUseCase with Availability Hold
+### Ticket 1 — Backend: AbstractApiIntegrationTest — Shared Integration Test Harness
 
 **Type:** Backend  
-**Task ID:** T054  
-**User Story:** US3 — Complete a Booking
+**Issue:** #130 / #132 (bugs caught by this harness)  
+**User Story:** Cross-cutting — foundational for all backend integration tests
 
 **Description:**  
-Implement the `CreateBookingUseCase` in `backend/src/main/kotlin/com/stayhub/application/booking/CreateBookingUseCase.kt`.
+`AbstractApiIntegrationTest` is the base class for all integration tests. It starts a shared Testcontainers PostgreSQL + PostGIS instance, loads the full Spring context (including security filter chain, Jackson serializers, and CORS config), and exposes a pre-configured `WebTestClient` to all subclasses.
 
-This use case is the entry point for the booking flow. It must:
+The value of this harness is that it tests the real HTTP stack — not mocked controllers or mocked repositories. This is the layer that caught two real bugs:
 
-1. Validate requested dates (check-in in the future, check-out after check-in)
-2. Verify the property exists and is active
-3. Check no active availability hold or confirmed booking exists for the requested dates
-4. Create a 10-minute `AvailabilityHold` row via `AvailabilityHoldRepository`
-5. Calculate the full price snapshot (nightly rate × nights + cleaning fee + 12% service fee)
-6. Create a Stripe `PaymentIntent` via `PaymentService` port for the total amount in EUR
-7. Persist a booking draft and return the Stripe `client_secret` + `hold_expires_at`
+- **Issue #130** (CORS 401 on preflight): browsers send an `OPTIONS` request before `POST /api/v1/bookings`. The CORS filter was rejecting it before the security chain could process it. Only caught when the real security config was loaded.
+- **Issue #132** (Jackson serialization): `LocalDate` fields were serializing as arrays `[2025, 7, 1]` instead of `"2025-07-01"`. The `jackson-datatype-jsr310` module was present but the Spring Boot auto-configuration wasn't wiring it via the test context.
+
+Neither bug would have been visible in unit tests with mocked Spring beans.
 
 **Acceptance criteria:**
-- Returns `CreateBookingResponse` with `booking_id`, `reference_number`, `price_breakdown`, `stripe_client_secret`, and `hold_expires_at`
-- Returns `409 DATES_UNAVAILABLE` if dates are held or booked
-- Returns `400 VALIDATION_ERROR` if dates are in the past or check-out ≤ check-in
-- Hold row has `held_until = NOW() + 10 minutes`
-- Price breakdown matches the formula: `subtotal = nightly_rate × nights`, `service_fee = subtotal × 0.12`
+- A single `@SpringBootTest(webEnvironment = RANDOM_PORT)` with shared `@Container` (started once, reused across all tests)
+- Flyway migrations applied before any test runs
+- Subclasses get a `WebTestClient` with a pre-issued guest JWT for authenticated endpoints
+- Each endpoint test class extends `AbstractApiIntegrationTest` with zero extra config
 
-**Files to create/modify:**
-- `backend/src/main/kotlin/com/stayhub/application/booking/CreateBookingUseCase.kt` (create)
-- `backend/src/main/kotlin/com/stayhub/infrastructure/persistence/AvailabilityHoldRepositoryAdapter.kt` (create)
+**Key files:**
+- `backend/src/test/kotlin/com/stayhub/AbstractApiIntegrationTest.kt`
+- `backend/src/test/kotlin/com/stayhub/booking/BookingControllerIntegrationTest.kt`
+- `backend/src/test/kotlin/com/stayhub/property/PropertyControllerIntegrationTest.kt`
 
 ---
 
-### Ticket 2 — Frontend: Implement MapView Component with Viewport-Triggered Search
+### Ticket 2 — Bug: Availability Calendar Shows Booked Dates as Available
 
-**Type:** Frontend  
-**Task ID:** T033  
-**User Story:** US1 — Search Properties by Location and Dates
+**Type:** Bug Fix  
+**Issue:** #156  
+**User Story:** US2 — Complete a Booking
 
 **Description:**  
-Implement the `MapView` component in `frontend/src/components/search/MapView.tsx`.
+The property detail page's availability calendar was showing all dates as selectable, even dates already booked by other guests or blocked by a host.
 
-This is the interactive map that sits alongside the results list on the search page. It must:
+**Root cause:** `SearchPropertiesUseCase` was querying `availability` rows for `status = 'available'`, but `CreateBookingUseCase` was writing `BOOKING` rows without inserting corresponding `availability` rows marking the dates as `booked`. The two write paths were out of sync.
 
-1. Render a Mapbox GL map via `react-map-gl` centered on the geocoded location
-2. Display a marker for each property in the results list
-3. Fire an `onViewportChange(bounds: BoundingBox)` callback whenever the user pans or zooms, triggering a new search query with the new bounding box
-4. Highlight the marker corresponding to a hovered property card in the results list (and vice versa)
-5. On marker click, navigate to the property detail page
+Additionally, the search endpoint was not filtering out properties that had no availability for the requested date range — it was returning them as visible results, and guests could attempt to book already-booked properties only to receive a 409 at checkout.
 
-**Acceptance criteria:**
-- Map renders with correct initial center and zoom based on geocoded location
-- Panning the map triggers `onViewportChange` with updated `sw_lat/sw_lng/ne_lat/ne_lng`
-- Marker count matches the results list count
-- Hovered marker changes to an active style
-- Clicking a marker navigates to `/property/{id}`
+**Fix applied:**
+- `CreateBookingUseCase`: after confirming a booking, writes `availability` rows for each booked date with `status = 'booked'`
+- `SearchPropertiesUseCase`: adds a SQL filter to exclude properties where any requested date is `status != 'available'`
+- Integration test added to verify that a booked property disappears from search results for the same dates
 
-**Files to create/modify:**
-- `frontend/src/components/search/MapView.tsx` (create)
-- `frontend/src/app/search/page.tsx` (update — wire `onViewportChange` to re-trigger search query)
+**Key files:**
+- `backend/src/main/kotlin/com/stayhub/application/booking/CreateBookingUseCase.kt`
+- `backend/src/main/kotlin/com/stayhub/application/search/SearchPropertiesUseCase.kt`
+- `backend/src/test/kotlin/com/stayhub/search/SearchAvailabilityIntegrationTest.kt`
 
 ---
 
-### Ticket 3 — Database: Create Availability and Availability Hold Schema
+### Ticket 3 — Bug: React Strict Mode Double-Mount Hangs Booking Hold
 
-**Type:** Database  
-**Task ID:** T011  
-**User Story:** Foundational (blocks all booking user stories)
+**Type:** Bug Fix  
+**Issue:** #166  
+**User Story:** US2 — Complete a Booking
 
 **Description:**  
-Create Flyway migration `V4__create_availability.sql` in `backend/src/main/resources/db/migration/`.
+Under React 18+ Strict Mode (active in local development), the checkout page was silently hanging — the booking hold was never created and the user saw an indefinite loading spinner.
 
-This migration creates two tables that power the real-time availability system:
+**Root cause:** The checkout page created the availability hold by calling a `mutate()` function inside a `useEffect`. In React Strict Mode, effects are deliberately mounted, unmounted, and remounted once — so `mutate()` fired twice. The first call created the hold; the second call hit the API again with the same guest+dates and received a 409 `DATES_UNAVAILABLE` (the hold from the first call was still active). The second 409 set the component's error state, which never resolved.
 
-**`availability` table** — sparse date-level availability per property:
-```sql
-CREATE TABLE availability (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    property_id UUID NOT NULL REFERENCES property(id) ON DELETE CASCADE,
-    date DATE NOT NULL,
-    is_available BOOLEAN NOT NULL DEFAULT true,
-    status VARCHAR(20) NOT NULL DEFAULT 'available'
-        CHECK (status IN ('available', 'booked', 'blocked')),
-    CONSTRAINT uq_availability_property_date UNIQUE (property_id, date)
-);
-CREATE INDEX idx_availability_available ON availability (property_id, date)
-    WHERE is_available = true;
-```
+**Fix applied:** Replaced the `useEffect + mutate()` pattern with a params-keyed `useQuery`. The booking hold creation is now triggered by the query key (property ID + dates + guest ID) rather than a mount effect. A query fires exactly once per unique key — React Strict Mode's double-mount does not fire the query twice because the cache already holds the result from the first invocation.
 
-**`availability_hold` table** — temporary holds during checkout:
-```sql
-CREATE TABLE availability_hold (
-    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-    property_id UUID NOT NULL REFERENCES property(id) ON DELETE CASCADE,
-    guest_id UUID NOT NULL REFERENCES guest(id) ON DELETE CASCADE,
-    check_in DATE NOT NULL,
-    check_out DATE NOT NULL,
-    held_until TIMESTAMP WITH TIME ZONE NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
-);
-CREATE INDEX idx_hold_property_dates ON availability_hold (property_id, check_in, check_out);
-CREATE INDEX idx_hold_expiry ON availability_hold (held_until);
-```
-
-**Acceptance criteria:**
-- Migration applies cleanly on a fresh database after V1–V3
-- Unique constraint on `(property_id, date)` prevents duplicate availability rows
-- Indexes are created as specified
-- `availability_hold.held_until` index enables efficient cleanup queries
-
-**Files to create:**
-- `backend/src/main/resources/db/migration/V4__create_availability.sql`
+**Key files:**
+- `frontend/src/app/booking/[id]/page.tsx`
+- `frontend/src/services/bookingService.ts`
+- Memory: `reference_mutate_in_effect_strictmode.md` (captures this pattern for future sessions)
 
 ---
 
 ## 7. Pull Requests
 
-### Pull Request 1 — [Spec Kit] Add project constitution and guest search & booking specification
+### Pull Request 1 — feat(e2e): Playwright booking-journey spec + Docker-compose CI stack (#145)
 
-**What:** Introduces the StayHub project constitution defining 7 core development principles (Specification-First, Clean Architecture, API-First, DDD, Testing Discipline, Security by Default, Observability) and the complete feature specification for the Guest Search and Booking feature including 4 user stories, 14 functional requirements, and 5 clarifications.
+**What:** Adds the full end-to-end Playwright test suite (`booking-journey.spec.ts`) covering two critical journeys: (1) guest registers → searches Barcelona → opens a property → reserves → pays via mock stub → sees confirmation with a `BK-` reference number; (2) guest cancels a confirmed booking from My Trips and verifies the status becomes `cancelled`. Also wires the `e2e` CI job in GitHub Actions to boot the full stack with `docker compose -f docker-compose.yml -f docker-compose.e2e.yml` before running Playwright.
 
-**Why:** Establishes the governance framework and the specification-first baseline required before any implementation begins — per Principle I of the constitution.
+**Why:** Unit and integration tests cover the layers in isolation, but they don't catch wiring bugs between the frontend, backend, and database. The E2E spec was the first test to catch the React Strict Mode double-mount issue (#166) and the fact that the frontend payment form was calling the wrong API path under the E2E stub configuration. The CI job makes both issues visible on every PR without manual testing.
 
-**Impact:** No code changes. Adds `.specify/memory/constitution.md` and `specs/001-guest-search-booking/spec.md`. All subsequent PRs must reference these artifacts.
+**Impact:** E2E tests run in CI on every push and PR. Later promoted to a required check (PR #176), meaning the branch cannot be merged if Playwright fails. `docker-compose.e2e.yml` sets `NEXT_PUBLIC_E2E=true` to bypass the real payment form and use a mock stub path.
 
-**References:** Constitution v1.0.0 · Feature spec US1–US4
-
----
-
-### Pull Request 2 — [Spec Kit] Add implementation plan, data model, and API contracts
-
-**What:** Adds the full implementation plan (`plan.md`), entity relationship data model (`data-model.md`), OpenAPI 3.1 contracts for Search, Property, and Booking APIs (`contracts/`), developer quickstart (`quickstart.md`), and the ordered task list (`tasks.md`) for the Guest Search and Booking feature.
-
-**Why:** Completes the design phase before implementation. API contracts define the backend/frontend interface so both can be developed in parallel. Tasks provide the execution roadmap for 85 implementation tasks across 7 phases.
-
-**Impact:** No production code. Defines ~15 API endpoints across 3 controllers, 6 database entities with PostGIS spatial indexing, and Flyway migration strategy.
-
-**References:** All spec artifacts under `specs/001-guest-search-booking/`
+**References:** Issues #144 (E2E spec), #147 (promote E2E to required check), #166 (Strict Mode bug found by E2E)
 
 ---
 
-### Pull Request 3 — Add GitHub PR template and update constitution to v1.0.1
+### Pull Request 2 — feat(trips): US4 Slice A — My Trips & cancellation backend (#149)
 
-**What:** Adds `.github/pull_request_template.md` with structured sections (What, Why, Impact, References, Checklist) and updates the constitution Development Workflow section to mandate its use.
+**What:** Implements the complete backend for US4: `GetMyTripsUseCase` (paginated list of bookings for the authenticated guest), `GetTripDetailsUseCase` (single booking with property details), and `CancelBookingUseCase` (validates the 48-hour cancellation policy, updates booking status to `cancelled`, inserts `availability` rows back to `available`, and triggers the mock refund via `PaymentService` port). Includes a `TripsController` in the presentation layer and full integration tests via `AbstractApiIntegrationTest`.
 
-**Why:** Ensures every PR in the project is self-documenting and traceable to a user story or task — critical for an AI-assisted workflow where context continuity across sessions matters.
+**Why:** US4 is the final user story in scope and the one that closes the booking lifecycle loop. Without cancellation, confirmed bookings never free up dates — the availability system would permanently mark dates as booked even if the guest cancelled.
 
-**Impact:** GitHub automatically prepopulates the template when any PR is opened. No code changes.
+**Impact:** New endpoints: `GET /api/v1/trips` (paginated), `GET /api/v1/trips/{bookingId}`, `POST /api/v1/trips/{bookingId}/cancel`. All require JWT authentication and enforce that the guest can only access their own bookings. The cancellation endpoint respects the 48-hour policy: requests within 48 hours of check-in return `422 CANCELLATION_NOT_ALLOWED`.
 
-**References:** Constitution v1.0.1 — Development Workflow section
+**References:** US4 — Manage Bookings, issue #148 (trips backend), issue #151 (cancellation policy enforcement)
+
+---
+
+### Pull Request 3 — fix(search): exclude unavailable properties; align booking with calendar (#173)
+
+**What:** Fixes the two-part availability bug discovered via the Playwright E2E spec: (1) `SearchPropertiesUseCase` was returning properties that had existing bookings for the requested dates — they appeared in results but threw 409 at checkout. (2) `CreateBookingUseCase` was not writing `availability` rows after confirming a booking, so the property calendar showed all dates as available even after a confirmed booking existed.
+
+**Why:** The search/booking split was a spec-time oversight — the search query and the booking write path were implemented in separate PRs without coordinating the availability row lifecycle. The E2E spec caught it because it books a property, returns to the search page, and then attempts to book the same dates — the second attempt should fail at the results level, not at checkout.
+
+**Impact:** Search results now exclude properties with any `booked` or `blocked` availability row in the requested date range (SQL fix in `SearchPropertiesRepository`). Booking confirmation now inserts one `availability` row per booked date. Added a dedicated integration test class `SearchAvailabilityIntegrationTest` that seeds a booking and asserts the property disappears from search for those dates.
+
+**References:** Issue #156 (calendar shows booked dates), issue #172 (search returns unavailable properties)
