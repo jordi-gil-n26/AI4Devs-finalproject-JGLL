@@ -2,8 +2,8 @@ package com.stayhub.application.booking
 
 import com.stayhub.domain.booking.BookingRepository
 import com.stayhub.domain.booking.TripCategory
+import com.stayhub.domain.common.DomainPageRequest
 import com.stayhub.domain.property.PropertyRepository
-import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import java.time.LocalDate
 import java.util.UUID
@@ -19,7 +19,7 @@ class GetMyTripsUseCase(
     private val propertyRepository: PropertyRepository,
 ) {
     suspend fun execute(guestId: UUID, category: TripCategory, page: Int, size: Int): MyTripsResult {
-        val pageable = PageRequest.of(page - 1, size)
+        val pageable = DomainPageRequest(page - 1, size)
         val result = bookingRepository.findByGuestIdAndCategory(guestId, category, LocalDate.now(), pageable)
 
         val summaries = result.content.map { booking ->

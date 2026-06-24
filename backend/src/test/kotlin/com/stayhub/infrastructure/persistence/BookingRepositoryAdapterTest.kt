@@ -3,6 +3,7 @@ package com.stayhub.infrastructure.persistence
 import com.stayhub.domain.booking.Booking
 import com.stayhub.domain.booking.BookingStatus
 import com.stayhub.domain.booking.TripCategory
+import com.stayhub.domain.common.DomainPageRequest
 import com.stayhub.infrastructure.config.TestContainersConfiguration
 import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
@@ -12,7 +13,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
-import org.springframework.data.domain.PageRequest
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
@@ -171,7 +171,7 @@ class BookingRepositoryAdapterTest {
         adapter.save(second)
         adapter.save(third)
 
-        val page = adapter.findByGuestId(guestId, PageRequest.of(0, 10))
+        val page = adapter.findByGuestId(guestId, DomainPageRequest(0, 10))
 
         page.totalElements shouldBe 3L
         page.content shouldHaveSize 3
@@ -189,7 +189,7 @@ class BookingRepositoryAdapterTest {
         // Cancelled (future) must be excluded from UPCOMING
         adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 25), checkOut = LocalDate.of(2030, 6, 28), status = BookingStatus.CANCELLED))
 
-        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.UPCOMING, today, PageRequest.of(0, 10))
+        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.UPCOMING, today, DomainPageRequest(0, 10))
 
         page.totalElements shouldBe 1L
         page.content.single().checkOut shouldBe LocalDate.of(2030, 6, 20)
@@ -201,7 +201,7 @@ class BookingRepositoryAdapterTest {
         adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 1), checkOut = LocalDate.of(2030, 6, 5), status = BookingStatus.COMPLETED))
         adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 20), checkOut = LocalDate.of(2030, 6, 23), status = BookingStatus.CONFIRMED))
 
-        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.PAST, today, PageRequest.of(0, 10))
+        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.PAST, today, DomainPageRequest(0, 10))
 
         page.totalElements shouldBe 1L
         page.content.single().checkOut shouldBe LocalDate.of(2030, 6, 5)
@@ -213,7 +213,7 @@ class BookingRepositoryAdapterTest {
         adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 20), checkOut = LocalDate.of(2030, 6, 23), status = BookingStatus.CANCELLED))
         adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 21), checkOut = LocalDate.of(2030, 6, 24), status = BookingStatus.CONFIRMED))
 
-        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.CANCELLED, today, PageRequest.of(0, 10))
+        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.CANCELLED, today, DomainPageRequest(0, 10))
 
         page.totalElements shouldBe 1L
         page.content.single().status shouldBe BookingStatus.CANCELLED
@@ -226,7 +226,7 @@ class BookingRepositoryAdapterTest {
         adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 20), checkOut = LocalDate.of(2030, 6, 23), status = BookingStatus.CANCELLED))
         adapter.save(makeBooking(checkIn = LocalDate.of(2030, 6, 25), checkOut = LocalDate.of(2030, 6, 28), status = BookingStatus.CONFIRMED))
 
-        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.ALL, today, PageRequest.of(0, 10))
+        val page = adapter.findByGuestIdAndCategory(guestId, TripCategory.ALL, today, DomainPageRequest(0, 10))
 
         page.totalElements shouldBe 3L
     }

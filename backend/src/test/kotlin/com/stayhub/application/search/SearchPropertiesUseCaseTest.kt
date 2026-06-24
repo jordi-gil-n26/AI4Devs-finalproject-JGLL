@@ -1,5 +1,7 @@
 package com.stayhub.application.search
 
+import com.stayhub.domain.common.DomainPageRequest
+import com.stayhub.domain.common.PagedResult
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertyRepository
 import com.stayhub.domain.property.PropertySearchFilters
@@ -10,8 +12,6 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
 import java.time.LocalDate
 import java.util.*
 
@@ -41,7 +41,7 @@ class SearchPropertiesUseCaseTest {
                 avgRating = 4.8,
                 reviewCount = 10
             )
-            val page = PageImpl(listOf(mockProperty), PageRequest.of(0, 20), 1)
+            val page = PagedResult(listOf(mockProperty), page = 0, size = 20, totalElements = 1L)
 
             coEvery {
                 propertyRepo.searchByBoundingBox(
@@ -52,7 +52,7 @@ class SearchPropertiesUseCaseTest {
                     checkIn = LocalDate.parse("2026-07-01"),
                     checkOut = LocalDate.parse("2026-07-05"),
                     filters = PropertySearchFilters(),
-                    pageable = PageRequest.of(0, 20)
+                    pageable = DomainPageRequest(0, 20)
                 )
             } returns page
 

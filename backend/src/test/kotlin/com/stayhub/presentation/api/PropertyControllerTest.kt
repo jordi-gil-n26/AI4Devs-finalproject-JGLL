@@ -5,6 +5,7 @@ import com.stayhub.application.property.GetPropertyAvailabilityUseCase
 import com.stayhub.application.property.GetPropertyDetailsUseCase
 import com.stayhub.application.property.GetPropertyReviewsUseCase
 import com.stayhub.domain.availability.UnavailableDate
+import com.stayhub.domain.common.PagedResult
 import com.stayhub.domain.property.PriceBreakdown
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.review.Review
@@ -13,8 +14,6 @@ import com.stayhub.presentation.middleware.GlobalExceptionHandler
 import io.mockk.coEvery
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.time.Instant
 import java.time.LocalDate
@@ -113,7 +112,7 @@ class PropertyControllerTest {
 
     @Test
     fun `GET property reviews returns 200 with empty list when no reviews`() {
-        val page = PageImpl(emptyList<Review>(), PageRequest.of(0, 10), 0)
+        val page = PagedResult(emptyList<Review>(), page = 0, size = 10, totalElements = 0L)
         coEvery { getPropertyReviewsUseCase.execute(propertyId, 1, 10) } returns page
 
         client.get()
@@ -142,7 +141,7 @@ class PropertyControllerTest {
             guestFirstName = "Alice",
             guestAvatarUrl = null,
         )
-        val page = PageImpl(listOf(review), PageRequest.of(0, 10), 1)
+        val page = PagedResult(listOf(review), page = 0, size = 10, totalElements = 1L)
         coEvery { getPropertyReviewsUseCase.execute(propertyId, 1, 10) } returns page
 
         client.get()

@@ -1,16 +1,14 @@
 package com.stayhub.infrastructure.persistence
 
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.stayhub.domain.common.DomainPageRequest
+import com.stayhub.domain.common.PagedResult
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertyRepository
 import com.stayhub.domain.property.PropertySearchFilters
 import io.r2dbc.spi.Row
 import kotlinx.coroutines.reactive.awaitFirstOrNull
 import kotlinx.coroutines.reactive.awaitSingle
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.Pageable
-import org.springframework.data.r2dbc.core.R2dbcEntityTemplate
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.math.BigDecimal
@@ -30,8 +28,8 @@ class PropertyRepositoryAdapter(
         checkIn: LocalDate,
         checkOut: LocalDate,
         filters: PropertySearchFilters,
-        pageable: Pageable,
-    ): Page<Property> {
+        pageable: DomainPageRequest,
+    ): PagedResult<Property> {
         // Build parameterized query with window function to get count in single query
         // ST_MakeEnvelope(sw_lng, sw_lat, ne_lng, ne_lat, 4326) creates geography polygon
         val query = """
@@ -92,7 +90,7 @@ class PropertyRepositoryAdapter(
             .bind("neLat", neLat)
             .bind("checkIn", checkIn)
             .bind("checkOut", checkOut)
-            .bind("pageSize", pageable.pageSize)
+            .bind("pageSize", pageable.size)
             .bind("offset", pageable.offset)
 
         // Bind filter parameters
@@ -124,7 +122,7 @@ class PropertyRepositoryAdapter(
         val properties = results.map { it.first }
         val count = results.firstOrNull()?.second ?: 0L
 
-        return PageImpl(properties, pageable, count)
+        return PagedResult(properties, pageable.page, pageable.size, count)
     }
 
     override suspend fun findById(id: UUID): Property? {
