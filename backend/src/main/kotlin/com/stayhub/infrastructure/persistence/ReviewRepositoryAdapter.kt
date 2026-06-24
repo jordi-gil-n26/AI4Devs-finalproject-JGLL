@@ -1,11 +1,10 @@
 package com.stayhub.infrastructure.persistence
 
+import com.stayhub.domain.common.DomainPageRequest
+import com.stayhub.domain.common.PagedResult
 import com.stayhub.domain.review.Review
 import com.stayhub.domain.review.ReviewRepository
 import kotlinx.coroutines.reactive.awaitSingle
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.Pageable
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.stereotype.Repository
 import java.time.Instant
@@ -20,8 +19,8 @@ class ReviewRepositoryAdapter(
 
     override suspend fun findByPropertyId(
         propertyId: UUID,
-        pageable: Pageable,
-    ): Page<Review> {
+        pageable: DomainPageRequest,
+    ): PagedResult<Review> {
         val query = """
             SELECT r.id, r.property_id, r.guest_id, r.booking_id,
                    r.rating, r.comment, r.created_at,
@@ -37,7 +36,7 @@ class ReviewRepositoryAdapter(
 
         val results = databaseClient.sql(query)
             .bind("propertyId", propertyId)
-            .bind("pageSize", pageable.pageSize)
+            .bind("pageSize", pageable.size)
             .bind("offset", pageable.offset)
             .map { row, _ ->
                 val totalCount = row.get("total_count", Long::class.java) ?: 0L
@@ -63,6 +62,6 @@ class ReviewRepositoryAdapter(
         val reviews = results.map { it.first }
         val count = results.firstOrNull()?.second ?: 0L
 
-        return PageImpl(reviews, pageable, count)
+        return PagedResult(reviews, pageable.page, pageable.size, count)
     }
 }

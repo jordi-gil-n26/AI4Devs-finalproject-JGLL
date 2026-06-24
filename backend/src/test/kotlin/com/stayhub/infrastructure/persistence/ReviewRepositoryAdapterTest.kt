@@ -1,5 +1,6 @@
 package com.stayhub.infrastructure.persistence
 
+import com.stayhub.domain.common.DomainPageRequest
 import com.stayhub.infrastructure.config.TestContainersConfiguration
 import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldHaveSize
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
-import org.springframework.data.domain.PageRequest
 import org.springframework.r2dbc.core.DatabaseClient
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.TestPropertySource
@@ -147,7 +147,7 @@ class ReviewRepositoryAdapterTest {
     // ------------------------------------------------------------------
     @Test
     fun `returns empty page when property has no reviews`() = runTest {
-        val page = adapter.findByPropertyId(cleanPropertyId, PageRequest.of(0, 10))
+        val page = adapter.findByPropertyId(cleanPropertyId, DomainPageRequest(0, 10))
 
         page.content.shouldBeEmpty()
         page.totalElements shouldBe 0L
@@ -158,7 +158,7 @@ class ReviewRepositoryAdapterTest {
     // ------------------------------------------------------------------
     @Test
     fun `returns seeded review for property that already has reviews`() = runTest {
-        val page = adapter.findByPropertyId(seededPropertyId, PageRequest.of(0, 10))
+        val page = adapter.findByPropertyId(seededPropertyId, DomainPageRequest(0, 10))
 
         page.content shouldHaveSize 1
         page.totalElements shouldBe 1L
@@ -178,7 +178,7 @@ class ReviewRepositoryAdapterTest {
         insertReview(cleanPropertyId, guestId2, 4, "Very good")
         insertReview(cleanPropertyId, guestId3, 3, "OK")
 
-        val page = adapter.findByPropertyId(cleanPropertyId, PageRequest.of(0, 2))
+        val page = adapter.findByPropertyId(cleanPropertyId, DomainPageRequest(0, 2))
 
         page.content shouldHaveSize 2
         page.totalElements shouldBe 3L
@@ -194,7 +194,7 @@ class ReviewRepositoryAdapterTest {
         insertReview(cleanPropertyId, guestId2, 4, "Page-one review 2")
         insertReview(cleanPropertyId, guestId3, 3, "Page-two review")
 
-        val page = adapter.findByPropertyId(cleanPropertyId, PageRequest.of(1, 2))
+        val page = adapter.findByPropertyId(cleanPropertyId, DomainPageRequest(1, 2))
 
         page.content shouldHaveSize 1
         page.totalElements shouldBe 3L
@@ -216,7 +216,7 @@ class ReviewRepositoryAdapterTest {
             createdAtExpr = "NOW() - INTERVAL '1 day'",
         )
 
-        val page = adapter.findByPropertyId(cleanPropertyId, PageRequest.of(0, 10))
+        val page = adapter.findByPropertyId(cleanPropertyId, DomainPageRequest(0, 10))
 
         page.content shouldHaveSize 2
         // First result should be the newer review (DESC order).
@@ -231,7 +231,7 @@ class ReviewRepositoryAdapterTest {
     fun `maps all review fields correctly including guest name and avatar`() = runTest {
         val reviewId = insertReview(cleanPropertyId, guestId1, 5, "Great place!")
 
-        val page = adapter.findByPropertyId(cleanPropertyId, PageRequest.of(0, 10))
+        val page = adapter.findByPropertyId(cleanPropertyId, DomainPageRequest(0, 10))
 
         page.content shouldHaveSize 1
         val review = page.content[0]

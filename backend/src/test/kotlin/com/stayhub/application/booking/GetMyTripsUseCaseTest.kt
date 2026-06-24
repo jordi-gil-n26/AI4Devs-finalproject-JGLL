@@ -4,6 +4,8 @@ import com.stayhub.domain.booking.Booking
 import com.stayhub.domain.booking.BookingRepository
 import com.stayhub.domain.booking.BookingStatus
 import com.stayhub.domain.booking.TripCategory
+import com.stayhub.domain.common.DomainPageRequest
+import com.stayhub.domain.common.PagedResult
 import com.stayhub.domain.property.Property
 import com.stayhub.domain.property.PropertyRepository
 import io.kotest.matchers.shouldBe
@@ -11,9 +13,6 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.domain.Pageable
 import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
@@ -73,8 +72,8 @@ class GetMyTripsUseCaseTest {
     fun `maps bookings to enriched summaries with pagination`() {
         runBlocking {
             coEvery {
-                bookingRepository.findByGuestIdAndCategory(eq(guestId), eq(TripCategory.UPCOMING), any(), any<Pageable>())
-            } returns PageImpl(listOf(booking), PageRequest.of(0, 10), 1L)
+                bookingRepository.findByGuestIdAndCategory(eq(guestId), eq(TripCategory.UPCOMING), any(), any<DomainPageRequest>())
+            } returns PagedResult(listOf(booking), page = 0, size = 10, totalElements = 1L)
             coEvery { propertyRepository.findById(propertyId) } returns property
 
             val result = useCase.execute(guestId, TripCategory.UPCOMING, page = 1, size = 10)
@@ -97,8 +96,8 @@ class GetMyTripsUseCaseTest {
     fun `tolerates a missing property with blank enrichment`() {
         runBlocking {
             coEvery {
-                bookingRepository.findByGuestIdAndCategory(eq(guestId), any(), any(), any<Pageable>())
-            } returns PageImpl(listOf(booking), PageRequest.of(0, 10), 1L)
+                bookingRepository.findByGuestIdAndCategory(eq(guestId), any(), any(), any<DomainPageRequest>())
+            } returns PagedResult(listOf(booking), page = 0, size = 10, totalElements = 1L)
             coEvery { propertyRepository.findById(propertyId) } returns null
 
             val result = useCase.execute(guestId, TripCategory.ALL, page = 1, size = 10)

@@ -1,6 +1,7 @@
 package com.stayhub.presentation.api
 
 import com.stayhub.application.search.SearchPropertiesUseCase
+import com.stayhub.domain.common.PagedResult
 import com.stayhub.domain.property.GeocodeService
 import com.stayhub.domain.property.GeocodeResult
 import com.stayhub.domain.property.Property
@@ -10,8 +11,6 @@ import com.stayhub.presentation.middleware.GlobalExceptionHandler
 import io.mockk.coEvery
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
-import org.springframework.data.domain.PageImpl
-import org.springframework.data.domain.PageRequest
 import org.springframework.test.web.reactive.server.WebTestClient
 import java.util.*
 
@@ -43,7 +42,7 @@ class SearchControllerTest {
             avgRating = 4.8,
             reviewCount = 10
         )
-        val page = PageImpl(listOf(mockProperty), PageRequest.of(0, 20), 1)
+        val page = PagedResult(listOf(mockProperty), page = 0, size = 20, totalElements = 1L)
 
         coEvery {
             searchUseCase.search(

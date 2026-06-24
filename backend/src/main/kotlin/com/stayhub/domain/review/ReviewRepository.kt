@@ -1,12 +1,12 @@
 package com.stayhub.domain.review
 
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
+import com.stayhub.domain.common.DomainPageRequest
+import com.stayhub.domain.common.PagedResult
 import java.util.UUID
 
 interface ReviewRepository {
     suspend fun findByPropertyId(
         propertyId: UUID,
-        pageable: Pageable,
-    ): Page<Review>
+        pageable: DomainPageRequest,
+    ): PagedResult<Review>
 }

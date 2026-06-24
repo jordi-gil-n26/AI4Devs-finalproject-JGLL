@@ -1,7 +1,7 @@
 package com.stayhub.domain.property
 
-import org.springframework.data.domain.Page
-import org.springframework.data.domain.Pageable
+import com.stayhub.domain.common.DomainPageRequest
+import com.stayhub.domain.common.PagedResult
 import java.time.LocalDate
 import java.util.*
 
@@ -14,8 +14,8 @@ interface PropertyRepository {
         checkIn: LocalDate,
         checkOut: LocalDate,
         filters: PropertySearchFilters,
-        pageable: Pageable,
-    ): Page<Property>
+        pageable: DomainPageRequest,
+    ): PagedResult<Property>
 
     suspend fun findById(id: UUID): Property?
 }
