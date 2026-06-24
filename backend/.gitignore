@@ -23,3 +23,6 @@ out/
 
 # Spring Boot
 spring-shell.log
+
+# Local environment — never commit real secrets
+.env
