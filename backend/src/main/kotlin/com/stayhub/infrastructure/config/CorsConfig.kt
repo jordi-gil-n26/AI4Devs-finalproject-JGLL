@@ -1,5 +1,6 @@
 package com.stayhub.infrastructure.config
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.cors.CorsConfiguration
@@ -16,13 +17,21 @@ import org.springframework.web.cors.reactive.UrlBasedCorsConfigurationSource
  * standalone filter runs after `WebFilterChainProxy`, so the preflight would
  * otherwise be rejected with 401 by the authorization rules before any CORS
  * headers are written (issue #130).
+ *
+ * Allowed origins are driven by `stayhub.cors.allowed-origins` (env var
+ * `CORS_ALLOWED_ORIGINS`), comma-separated. Defaults to localhost:3000 for
+ * local development.
  */
 @Configuration
-class CorsConfig {
+class CorsConfig(
+    @Value("\${stayhub.cors.allowed-origins:http://localhost:3000}")
+    private val allowedOriginsRaw: String,
+) {
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
+        val origins = allowedOriginsRaw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
         val corsConfig = CorsConfiguration().apply {
-            allowedOrigins = listOf("http://localhost:3000", "http://localhost:3001")
+            allowedOrigins = origins
             allowedMethods = listOf("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
             allowedHeaders = listOf("*")
             allowCredentials = true
