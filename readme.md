@@ -27,7 +27,7 @@ StayHub is an AI-assisted implementation of a modern vacation rental marketplace
 
 ### **0.4. Project URL:**
 
-_To be added after deployment._
+[https://surprising-determination-production-fee3.up.railway.app/search](https://surprising-determination-production-fee3.up.railway.app/search)
 
 ### **0.5. Repository URL**
 
@@ -70,9 +70,56 @@ The guest experience follows a linear, low-friction flow:
 5. **Confirmation** — Instant confirmation page with booking reference number.
 6. **My Trips** — Guest can revisit all bookings, view details, and cancel if eligible.
 
-_Screenshots and demo video to be added after initial implementation._
+### **1.4. Testing the live application (production)**
 
-### **1.4. Installation instructions:**
+The application is deployed on Railway and ready to use without any local setup.
+
+**URL:** [https://surprising-determination-production-fee3.up.railway.app/search](https://surprising-determination-production-fee3.up.railway.app/search)
+
+#### Step-by-step walkthrough
+
+**1. Create an account**
+
+Go to `/register` and fill in first name, last name, email, and password. You are redirected to the search page immediately after registration.
+
+**2. Search for properties**
+
+The map is centred on Barcelona by default. Use the search bar to try other seeded cities: **Madrid** or **Lisbon**. Pick any check-in and check-out dates at least one day apart and in the future.
+
+**3. Browse and filter**
+
+Use the filter panel (price range, property type, bedrooms, amenities) to narrow results. Click any property card to open the detail page — the dates you selected are pre-filled in the booking widget automatically.
+
+**4. Make a test booking**
+
+On the property detail page, confirm the dates in the booking widget and click **Reserve**. On the checkout page use the following Stripe test card — no real charge is made:
+
+| Field | Value |
+|-------|-------|
+| Card number | `4242 4242 4242 4242` |
+| Expiry | Any future date (e.g. `12/30`) |
+| CVC | Any 3 digits (e.g. `123`) |
+| ZIP | Any 5 digits (e.g. `12345`) |
+
+Click **Pay** — booking is confirmed instantly and you land on the confirmation page with a `BK-` reference number.
+
+**5. View My Trips**
+
+Navigate to **My Trips** (top-right navigation). Your new booking appears with status `confirmed`. Click it to see full details including property address and host contact.
+
+**6. Cancel a booking (optional)**
+
+From the trip detail page, click **Cancel booking**. A modal shows the refund amount based on the platform policy (full refund if more than 48 hours before check-in). Confirm to cancel — the status changes to `cancelled` immediately.
+
+**7. Email notifications**
+
+Booking confirmation and cancellation emails are sent to the registered address. Check your inbox after completing a booking or cancellation.
+
+> **Note:** The database is seeded with 15 properties across Barcelona, Madrid, and Lisbon, each with 90 days of availability.
+
+---
+
+### **1.5. Local installation instructions:**
 
 #### Prerequisites
 
@@ -135,7 +182,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 ```bash
 docker compose up -d
-# Starts: PostgreSQL 16 + PostGIS, MailHog (fake SMTP)
+# Starts: PostgreSQL 16 + PostGIS, Mailpit (fake SMTP)
 ```
 
 #### 4. Start the backend
@@ -167,7 +214,7 @@ stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:8080 |
 | Swagger UI | http://localhost:8080/swagger-ui.html |
-| Email viewer (MailHog) | http://localhost:8025 |
+| Email viewer (Mailpit) | http://localhost:8025 |
 
 ---
 
@@ -322,10 +369,10 @@ graph LR
         BUILD[Docker Build]
     end
 
-    subgraph Prod["Production (target)"]
-        CDN[CDN / Vercel\nNext.js Frontend]
-        API[Container\nSpring Boot API]
-        DB[(PostgreSQL\n+ PostGIS)]
+    subgraph Prod["Production (Railway)"]
+        CDN[Railway Service\nNext.js Frontend]
+        API[Railway Service\nSpring Boot API]
+        DB[(Railway PostgreSQL\n+ PostGIS)]
     end
 
     Local --> CI
@@ -336,7 +383,7 @@ graph LR
 
 **CI**: GitHub Actions runs lint, type checks, and tests (Testcontainers spins up a real PostgreSQL + PostGIS instance for integration tests) on every push and PR.
 
-**Production target**: Frontend deployed to Vercel (or similar CDN-backed platform). Backend and database containerized and deployed to a cloud provider. Secrets managed via environment variables — never committed to source control.
+**Production**: Both frontend and backend are deployed as Railway services. The database is a Railway-managed PostgreSQL instance with the PostGIS extension enabled. Secrets are injected as Railway environment variables — never committed to source control. The live application is accessible at [https://surprising-determination-production-fee3.up.railway.app](https://surprising-determination-production-fee3.up.railway.app).
 
 ### **2.5. Security**
 
