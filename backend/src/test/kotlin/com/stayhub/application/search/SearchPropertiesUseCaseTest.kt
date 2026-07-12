@@ -17,6 +17,11 @@ import java.util.*
 
 class SearchPropertiesUseCaseTest {
 
+    private val checkIn: LocalDate = LocalDate.now().plusDays(30)
+    private val checkOut: LocalDate = LocalDate.now().plusDays(34)
+    private val checkInStr: String = checkIn.toString()
+    private val checkOutStr: String = checkOut.toString()
+
     @Test
     fun `searches properties within bounding box`() {
         runBlocking {
@@ -49,8 +54,8 @@ class SearchPropertiesUseCaseTest {
                     swLng = 2.10,
                     neLat = 41.45,
                     neLng = 2.20,
-                    checkIn = LocalDate.parse("2026-07-01"),
-                    checkOut = LocalDate.parse("2026-07-05"),
+                    checkIn = checkIn,
+                    checkOut = checkOut,
                     filters = PropertySearchFilters(),
                     pageable = DomainPageRequest(0, 20)
                 )
@@ -58,7 +63,7 @@ class SearchPropertiesUseCaseTest {
 
             val result = useCase.search(
                 swLat = 41.35, swLng = 2.10, neLat = 41.45, neLng = 2.20,
-                checkIn = "2026-07-01", checkOut = "2026-07-05",
+                checkIn = checkInStr, checkOut = checkOutStr,
                 filters = PropertySearchFilters(),
                 page = 1, size = 20
             )
@@ -77,7 +82,7 @@ class SearchPropertiesUseCaseTest {
             shouldThrow<ValidationException> {
                 useCase.search(
                     swLat = 41.45, swLng = 2.20, neLat = 41.35, neLng = 2.10,
-                    checkIn = "2026-07-01", checkOut = "2026-07-05",
+                    checkIn = checkInStr, checkOut = checkOutStr,
                     filters = PropertySearchFilters(),
                     page = 1, size = 20
                 )
