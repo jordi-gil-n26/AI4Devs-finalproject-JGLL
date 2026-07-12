@@ -189,12 +189,18 @@ function SearchPageContent() {
     [searchParams, router],
   );
 
-  // Handle property card click - navigate to property details
+  // Handle property card click - navigate to property details, forwarding selected dates
   const handlePropertyClick = useCallback(
     (propertyId: string) => {
-      router.push(`/property/${propertyId}`);
+      const params = new URLSearchParams();
+      const checkIn = searchParams.get('checkIn');
+      const checkOut = searchParams.get('checkOut');
+      if (checkIn) params.set('check_in', checkIn);
+      if (checkOut) params.set('check_out', checkOut);
+      const qs = params.toString();
+      router.push(`/property/${propertyId}${qs ? `?${qs}` : ''}`);
     },
-    [router],
+    [router, searchParams],
   );
 
   // Handle map property click - scroll to card and highlight
