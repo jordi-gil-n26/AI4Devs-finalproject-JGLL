@@ -57,7 +57,6 @@ StayHub solves the challenge of finding and booking short-term vacation rentals 
 | **Stripe payment integration** | Secure card payments via Stripe Payment Intents and Stripe Elements. Full PCI compliance via client-side tokenization. |
 | **Booking management** | Guests can view upcoming and past trips, access booking details (address, host contact), and cancel eligible bookings per the platform cancellation policy. |
 | **Cancellation policy** | Full refund if cancelled 48+ hours before check-in. No refund within 48 hours. |
-| **Email notifications** | Automatic booking confirmation and cancellation emails sent to both guest and host. |
 
 ### **1.3. Design and user experience:**
 
@@ -110,10 +109,6 @@ Navigate to **My Trips** (top-right navigation). Your new booking appears with s
 **6. Cancel a booking (optional)**
 
 From the trip detail page, click **Cancel booking**. A modal shows the refund amount based on the platform policy (full refund if more than 48 hours before check-in). Confirm to cancel — the status changes to `cancelled` immediately.
-
-**7. Email notifications**
-
-Booking confirmation and cancellation emails are sent to the registered address. Check your inbox after completing a booking or cancellation.
 
 > **Note:** The database is seeded with 15 properties across Barcelona, Madrid, and Lisbon, each with 90 days of availability.
 
@@ -739,7 +734,6 @@ GET /api/v1/properties/{propertyId}
 1. **Given** a guest on a property detail page with dates selected, **When** they click "Reserve", **Then** they see a checkout page with the full price breakdown and a Stripe payment form.
 2. **Given** a guest on the checkout page, **When** they enter valid card details and confirm, **Then** the system creates a confirmed booking and displays a confirmation with a reference number.
 3. **Given** two guests attempting the same dates simultaneously, **When** the first enters checkout, **Then** a 10-minute hold is placed on those dates — the second guest cannot book until the hold expires.
-4. **Given** a successful payment, **When** the transaction completes, **Then** both guest and host receive email notifications.
 
 **Definition of Done:** End-to-end booking flow completes in under 5 minutes. Double-booking rate is 0%.
 
