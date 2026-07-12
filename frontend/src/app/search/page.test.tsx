@@ -203,7 +203,7 @@ describe('SearchPage', () => {
     const propertyButton = screen.getByRole('button', { name: 'View Beautiful Barcelona Apartment' });
     fireEvent.click(propertyButton);
 
-    expect(mockPush).toHaveBeenCalledWith('/property/1');
+    expect(mockPush).toHaveBeenCalledWith('/property/1?check_in=2025-07-01&check_out=2025-07-10');
   });
 
   it('displays SearchBar at the top of the page', () => {

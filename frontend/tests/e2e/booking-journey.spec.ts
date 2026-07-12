@@ -78,6 +78,39 @@ async function registerAndBookConfirmedStay(page: Page): Promise<void> {
   await expect(page).toHaveURL(/\/confirmation\/[0-9a-f-]+$/);
 }
 
+test('search dates are forwarded to the property detail URL when clicking a card', async ({ page }) => {
+  const checkIn = isoDate(60);
+  const checkOut = isoDate(65);
+
+  // Register so the search page is accessible
+  const email = `e2e-dates-${Date.now()}@example.com`;
+  await page.goto('/register');
+  await page.getByTestId('register-first-name').fill('E2E');
+  await page.getByTestId('register-last-name').fill('Tester');
+  await page.getByTestId('register-email').fill(email);
+  await page.getByTestId('register-password').fill('pass1234');
+  await page.getByTestId('register-submit').click();
+  await expect(page).toHaveURL(/\/search/);
+
+  // Navigate to search with explicit dates in the URL
+  await page.goto(`/search?location=Barcelona&checkIn=${checkIn}&checkOut=${checkOut}`);
+
+  // Wait for at least one property card to render
+  const firstCard = page.locator('[data-testid="property-grid"] [data-property-id]').first();
+  await expect(firstCard).toBeVisible();
+  const propertyId = await firstCard.getAttribute('data-property-id');
+  expect(propertyId).toBeTruthy();
+
+  // Click the card (matches the navigation button inside PropertyCard)
+  await firstCard.getByRole('button').first().click();
+
+  // Assert the property detail URL contains the forwarded dates
+  await expect(page).toHaveURL(new RegExp(`/property/${propertyId}`));
+  const url = new URL(page.url());
+  expect(url.searchParams.get('check_in')).toBe(checkIn);
+  expect(url.searchParams.get('check_out')).toBe(checkOut);
+});
+
 test('guest registers, searches, books a property, and reaches confirmation', async ({ page }) => {
   await registerAndBookConfirmedStay(page);
 
