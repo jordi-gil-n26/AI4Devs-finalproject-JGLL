@@ -27,7 +27,7 @@ StayHub is an AI-assisted implementation of a modern vacation rental marketplace
 
 ### **0.4. Project URL:**
 
-_To be added after deployment._
+[https://surprising-determination-production-fee3.up.railway.app/search](https://surprising-determination-production-fee3.up.railway.app/search)
 
 ### **0.5. Repository URL**
 
@@ -57,7 +57,6 @@ StayHub solves the challenge of finding and booking short-term vacation rentals 
 | **Stripe payment integration** | Secure card payments via Stripe Payment Intents and Stripe Elements. Full PCI compliance via client-side tokenization. |
 | **Booking management** | Guests can view upcoming and past trips, access booking details (address, host contact), and cancel eligible bookings per the platform cancellation policy. |
 | **Cancellation policy** | Full refund if cancelled 48+ hours before check-in. No refund within 48 hours. |
-| **Email notifications** | Automatic booking confirmation and cancellation emails sent to both guest and host. |
 
 ### **1.3. Design and user experience:**
 
@@ -70,9 +69,52 @@ The guest experience follows a linear, low-friction flow:
 5. **Confirmation** — Instant confirmation page with booking reference number.
 6. **My Trips** — Guest can revisit all bookings, view details, and cancel if eligible.
 
-_Screenshots and demo video to be added after initial implementation._
+### **1.4. Testing the live application (production)**
 
-### **1.4. Installation instructions:**
+The application is deployed on Railway and ready to use without any local setup.
+
+**URL:** [https://surprising-determination-production-fee3.up.railway.app/search](https://surprising-determination-production-fee3.up.railway.app/search)
+
+#### Step-by-step walkthrough
+
+**1. Create an account**
+
+Go to `/register` and fill in first name, last name, email, and password. You are redirected to the search page immediately after registration.
+
+**2. Search for properties**
+
+The map is centred on Barcelona by default. Use the search bar to try other seeded cities: **Madrid** or **Lisbon**. Pick any check-in and check-out dates at least one day apart and in the future.
+
+**3. Browse and filter**
+
+Use the filter panel (price range, property type, bedrooms, amenities) to narrow results. Click any property card to open the detail page — the dates you selected are pre-filled in the booking widget automatically.
+
+**4. Make a test booking**
+
+On the property detail page, confirm the dates in the booking widget and click **Reserve**. On the checkout page use the following Stripe test card — no real charge is made:
+
+| Field | Value |
+|-------|-------|
+| Card number | `4242 4242 4242 4242` |
+| Expiry | Any future date (e.g. `12/30`) |
+| CVC | Any 3 digits (e.g. `123`) |
+| ZIP | Any 5 digits (e.g. `12345`) |
+
+Click **Pay** — booking is confirmed instantly and you land on the confirmation page with a `BK-` reference number.
+
+**5. View My Trips**
+
+Navigate to **My Trips** (top-right navigation). Your new booking appears with status `confirmed`. Click it to see full details including property address and host contact.
+
+**6. Cancel a booking (optional)**
+
+From the trip detail page, click **Cancel booking**. A modal shows the refund amount based on the platform policy (full refund if more than 48 hours before check-in). Confirm to cancel — the status changes to `cancelled` immediately.
+
+> **Note:** The database is seeded with 15 properties across Barcelona, Madrid, and Lisbon, each with 90 days of availability.
+
+---
+
+### **1.5. Local installation instructions:**
 
 #### Prerequisites
 
@@ -135,7 +177,7 @@ NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_...
 
 ```bash
 docker compose up -d
-# Starts: PostgreSQL 16 + PostGIS, MailHog (fake SMTP)
+# Starts: PostgreSQL 16 + PostGIS, Mailpit (fake SMTP)
 ```
 
 #### 4. Start the backend
@@ -167,7 +209,7 @@ stripe listen --forward-to localhost:8080/api/v1/webhooks/stripe
 | Frontend | http://localhost:3000 |
 | Backend API | http://localhost:8080 |
 | Swagger UI | http://localhost:8080/swagger-ui.html |
-| Email viewer (MailHog) | http://localhost:8025 |
+| Email viewer (Mailpit) | http://localhost:8025 |
 
 ---
 
@@ -322,10 +364,10 @@ graph LR
         BUILD[Docker Build]
     end
 
-    subgraph Prod["Production (target)"]
-        CDN[CDN / Vercel\nNext.js Frontend]
-        API[Container\nSpring Boot API]
-        DB[(PostgreSQL\n+ PostGIS)]
+    subgraph Prod["Production (Railway)"]
+        CDN[Railway Service\nNext.js Frontend]
+        API[Railway Service\nSpring Boot API]
+        DB[(Railway PostgreSQL\n+ PostGIS)]
     end
 
     Local --> CI
@@ -336,7 +378,7 @@ graph LR
 
 **CI**: GitHub Actions runs lint, type checks, and tests (Testcontainers spins up a real PostgreSQL + PostGIS instance for integration tests) on every push and PR.
 
-**Production target**: Frontend deployed to Vercel (or similar CDN-backed platform). Backend and database containerized and deployed to a cloud provider. Secrets managed via environment variables — never committed to source control.
+**Production**: Both frontend and backend are deployed as Railway services. The database is a Railway-managed PostgreSQL instance with the PostGIS extension enabled. Secrets are injected as Railway environment variables — never committed to source control. The live application is accessible at [https://surprising-determination-production-fee3.up.railway.app](https://surprising-determination-production-fee3.up.railway.app).
 
 ### **2.5. Security**
 
@@ -692,7 +734,6 @@ GET /api/v1/properties/{propertyId}
 1. **Given** a guest on a property detail page with dates selected, **When** they click "Reserve", **Then** they see a checkout page with the full price breakdown and a Stripe payment form.
 2. **Given** a guest on the checkout page, **When** they enter valid card details and confirm, **Then** the system creates a confirmed booking and displays a confirmation with a reference number.
 3. **Given** two guests attempting the same dates simultaneously, **When** the first enters checkout, **Then** a 10-minute hold is placed on those dates — the second guest cannot book until the hold expires.
-4. **Given** a successful payment, **When** the transaction completes, **Then** both guest and host receive email notifications.
 
 **Definition of Done:** End-to-end booking flow completes in under 5 minutes. Double-booking rate is 0%.
 
