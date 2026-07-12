@@ -8,7 +8,8 @@
 4. [API Specification](#4-api-specification)
 5. [User Stories](#5-user-stories)
 6. [Work Tickets](#6-work-tickets)
-7. [Pull Requests](#7-pull-requests)
+7. [AI-Assisted Implementation Workflow](#7-ai-assisted-implementation-workflow)
+8. [Pull Requests](#8-pull-requests)
 
 ---
 
@@ -180,7 +181,31 @@
 
 ---
 
-## 7. Pull Requests
+## 7. AI-Assisted Implementation Workflow
+
+This section documents the prompts used during the actual implementation phase, where Claude Code was used to plan, implement, review, and ship features end-to-end through a structured GitHub issue workflow.
+
+**Prompt 1 — Feature planning (brainstorming + spec writing):**
+
+> I want to plan a feature. Now, when I search for dates and I see different properties in the list, if I click one of those I go to its own page but I have to select again those dates. I want to already have selected the dates from the initial selection.
+
+This prompt triggered the full brainstorming skill: Claude explored the codebase to understand the existing search and property detail URL structure, proposed three approaches (URL params forwarding, React context, sessionStorage), recommended the URL params approach as idiomatic for the codebase, and produced a design spec and implementation plan before writing any code.
+
+**Prompt 2 — Issue creation and implementation:**
+
+> `/implement-issue 185`
+
+After the plan was committed and a GitHub issue was created, this single command triggered the full implementation workflow: Claude read the issue, verified it against the plan, created an isolated git worktree, wrote the TypeScript change in `handlePropertyClick`, added a Playwright E2E test, ran the full test suite (Vitest + TypeScript check), ran a security review, and opened a PR with the PR template fully populated — all without further prompting.
+
+**Prompt 3 — Debugging CI failures:**
+
+> Tests are failing in GitHub. Check.
+
+Claude inspected the GitHub Actions run, identified two failures: (1) a frontend Vitest test asserting the old navigation URL (`/property/1`) that needed updating to include the forwarded date params, and (2) a backend test with hardcoded dates (`2026-07-01`) that had become past dates since the test was written — causing a `ValidationException` from the use case's past-date validation. Both were fixed with targeted commits and the root cause of each was explained.
+
+---
+
+## 8. Pull Requests
 
 **Prompt 1:**
 
